@@ -1,0 +1,17 @@
+# Ignore raw astronomy data
+*.fits
+*.FITS
+*.fit
+
+# Ignore large data folders
+data/
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Mac
+.DS_Store
