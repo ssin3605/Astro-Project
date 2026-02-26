@@ -71,7 +71,7 @@ print(f"Global min/median/max: "
       f"{all_pix.max():.4g}")
 
 
-# Histogram (linear) - good for 2-3 orders of magnitude 
+# Histogram (linear) - after inspection does not contribute much value 
 
 plt.figure()
 plt.hist(all_pix, bins=300)
