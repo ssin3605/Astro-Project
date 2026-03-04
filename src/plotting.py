@@ -2,9 +2,10 @@
 # Also saving figures created
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 
-def plot_halpha_map(fluxmap, title=None, outfile=None):
+def plot_map(fluxmap, title=None, outfile=None): #, logscale=True
     """
     Plot an Halpha flux map.
 
@@ -15,11 +16,26 @@ def plot_halpha_map(fluxmap, title=None, outfile=None):
         Plot title.
     outfile : str, optional
         If provided, save figure to this path.
+    logscale : bool
+        If True, plot log10(flux).
     """
+    fluxmap = np.asarray(fluxmap)
 
     fig, ax = plt.subplots(figsize=(5, 5))
-    im = ax.imshow(fluxmap, origin="lower")
-    plt.colorbar(im, ax=ax, label="Halpha Flux")
+
+    image = fluxmap
+    label = "Flux"
+    #if logscale:
+        # Avoid log of zero
+        #safe = np.where(fluxmap > 0, fluxmap, np.nan)
+        #image = np.log10(safe)
+        #label = "log10(Hα Flux)"
+    #else:
+        #image = fluxmap
+        #label = "Flux"
+    
+    im = ax.imshow(image, origin="lower")
+    plt.colorbar(im, ax=ax, label=label)
 
     if title:
         ax.set_title(title)

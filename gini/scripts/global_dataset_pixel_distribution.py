@@ -9,7 +9,7 @@ from src.io import halpha_flux_map_from_dr3
 # Defines the path for the script to run. This file's location has .parent[0] of /sami/scripts, so .parents[1] allows the script to access other files in /sami including /data and /outputs
 PROJECT_ROOT = Path(__file__).resolve().parents[1] # Project path is rooted to the base repo /sami
 DATA_DIR = PROJECT_ROOT / "data" / "fits" / "sami_dr3_halpha_maps" # Use data from /sami/data/fits/sami_dr3_halpha_maps
-OUTPUT_DIR = PROJECT_ROOT / "outputs" / "figures" # Save figures produced to /output
+OUTPUT_DIR = PROJECT_ROOT / "gini"/ "gini_outputs" / "figures" # Save figures produced to /output
 
 files = sorted(DATA_DIR.rglob("*_1-comp.fits")) # Only selecting the 1-comp.fits not recom-comp.fits
 

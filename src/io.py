@@ -1,69 +1,74 @@
 # File to: 
 # - open SAMI .fits files
-# - Extract data arrays
-# - Produce clean NumPy objects
+# - return flux and error layer values
 
 import numpy as np
 from astropy.io import fits
 
-# Function to read a SAMI Halpha flux map and corresponding error map.
-def read_sami_halpha_map(fitsfile, errext="HALPHA_ERR"):
-    """
+## Use for Halpha Data
+def read_sami_Halpha_layers(fitsfile: str, flux_hdu="PRIMARY", err_hdu="HALPHA_ERR"):
+    with fits.open(fitsfile, memmap=True) as hdul:
+        flux = np.asarray(hdul[flux_hdu].data)
+        err  = np.asarray(hdul[err_hdu].data)
+        header = hdul[flux_hdu].header
 
-    Parameters
-    fitsfile : str
-        Path to SAMI Halpha FITS file.
-    errext : str
-        Name of the FITS extension containing the error map.
+    if flux.ndim != 3 or err.ndim != 3:
+        raise ValueError(f"Expected 3D cubes. Got flux {flux.shape}, err {err.shape}")
+
+    # move the axis of length 2 to the front -> (2, ny, nx)
+    axf = [ax for ax, n in enumerate(flux.shape) if n == 2][0]
+    axe = [ax for ax, n in enumerate(err.shape) if n == 2][0]
+    flux2 = np.moveaxis(flux, axf, 0)
+    err2  = np.moveaxis(err,  axe, 0)
+
+    flux_layers = {"fit": flux2[0].astype(float), "sum": flux2[1].astype(float)}
+    err_layers  = {"fit": err2[0].astype(float),  "sum": err2[1].astype(float)}
+
+    meta = {
+        "fitsfile": fitsfile,
+        "flux_hdu": flux_hdu,
+        "err_hdu": err_hdu,
+        "flux_shape_raw": tuple(flux.shape),
+        "err_shape_raw": tuple(err.shape),
+        "flux_shape_std": tuple(flux2.shape),
+        "err_shape_std": tuple(err2.shape),
+    }
+
+    return flux_layers, err_layers, header, meta
+
+## Use for Continuum Data
+def read_sami_continuum_layers(
+    fitsfile,
+    flux_hdu="PRIMARY",
+    err_hdu="HALPHA_CONT_STD_DEV",
+):
+    """
+    Read a SAMI continuum map and its std dev map.
 
     Returns
+    -------
     fluxmap : 2D numpy array
-        Halpha flux map.
     fluxerr : 2D numpy array
-        Corresponding flux error map.
-    header : astropy.io.fits.Header
-        Primary header.
+    header  : FITS header
+    meta    : dict
     """
 
-    with fits.open(fitsfile) as hdul:
-        # SAMI convention: data stored as (component, y, x)
-        fluxmap = hdul[0].data[0, :, :]
-        fluxerr = hdul[errext].data[0, :, :]
-        header = hdul[0].header
+    with fits.open(fitsfile, memmap=True) as hdul:
+        flux = np.asarray(hdul[flux_hdu].data, dtype=float)
+        err  = np.asarray(hdul[err_hdu].data, dtype=float)
+        header = hdul[flux_hdu].header
 
-    return fluxmap, fluxerr, header
+    if flux.ndim != 2 or err.ndim != 2:
+        raise ValueError(
+            f"Expected 2D maps. Got flux {flux.shape}, err {err.shape}"
+        )
 
+    meta = {
+        "fitsfile": fitsfile,
+        "flux_hdu": flux_hdu,
+        "err_hdu": err_hdu,
+        "flux_shape": tuple(flux.shape),
+        "err_shape": tuple(err.shape),
+    }
 
-# Function to take the Halpha flux map from DR3 Halpha map file
-
-def halpha_flux_map_from_dr3(path):
-    """
-    Extract the Hα flux map from SAMI DR3 Halpha map FITS.
-    Accomodated for both axis orderings as am unsure which it is:
-      - (2, ny, nx)  -> flux is [0, :, :]
-      - (ny, nx, 2)  -> flux is [:, :, 0]
-    """
-    with fits.open(path, memmap=True) as hdul:
-        data = np.asarray(hdul[0].data)
-
-    if data.ndim != 3:
-        raise ValueError(f"Expected 3D array, got shape {data.shape}")
-
-    # Case 1: layer axis first (common in astropy for FITS with NAXIS3)
-    if data.shape[0] == 2 and data.shape[1] == 50 and data.shape[2] == 50:
-        flux = data[0, :, :]
-
-    # Case 2: layer axis last
-    elif data.shape[2] == 2 and data.shape[0] == 50 and data.shape[1] == 50:
-        flux = data[:, :, 0]
-
-    else:
-        # More general fallback: identify the axis of length 2 and move it
-        axes_len2 = [ax for ax, n in enumerate(data.shape) if n == 2]
-        if len(axes_len2) != 1:
-            raise ValueError(f"Can't identify 2-layer axis in shape {data.shape}")
-        ax2 = axes_len2[0]
-        data2 = np.moveaxis(data, ax2, 0)   # -> (2, ny, nx)
-        flux = data2[0, :, :]
-
-    return flux
+    return flux, err, header, meta

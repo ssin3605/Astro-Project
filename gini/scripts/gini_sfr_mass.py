@@ -12,7 +12,7 @@ from src.signal_noise import sn_mask
 # Paths to datasets and output
 catalog_path = "data/catalogs/AR2022_SAMI_DR3_Mstar_SFR_GSWL_rescaled.fits"
 halpha_dir = "data/fits/sami_dr3_Halpha_maps/"
-output_path = "outputs/tables/gini_sfr_mass.csv"
+output_path = "gini/gini_outputs/tables/gini_sfr_mass.csv"
 
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 

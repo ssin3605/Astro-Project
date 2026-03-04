@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-infile = "outputs/tables/gini_sfr_mass.csv"
-outdir = "outputs/figures"
+infile = "gini/gini_outputs/tables/gini_sfr_mass.csv"
+outdir = "gini/gini_outputs/figures"
 os.makedirs(outdir, exist_ok=True)
 
 df = pd.read_csv(infile)

@@ -1,50 +1,44 @@
-# This file is responsible for turning spatial maps into numbers
+# This file is responsible for turning spatial maps of flux values into calculated numbers
 # And non-parametric morphology
 
 import numpy as np
 
-
+## GINI CALCULATIONS
 def gini_from_map(fluxmap, fluxerr=None, sn_cut=3.0):
-    # importing 2D Halpha fluxmap, with room for signal-noise cutting/threshold (pixel selection)
     """
     Computes the Gini coefficient from a 2D flux map.
-
-    Parameters
-    fluxmap : 2D numpy array
-        Flux map (e.g. Halpha).
-    fluxerr : 2D numpy array, optional
-        Flux error map.
-    sn_cut : float
-        Signal-to-noise threshold for including pixels.
-
-    Returns
-    gini : float
-        Gini coefficient (0 = uniform, 1 = all flux in one pixel).
     """
+    fluxmap = np.asarray(fluxmap)
 
-    flux = fluxmap.flatten()
-    #flattens data into just a distribution of values to treat each pixel as an individual agent
+    if fluxmap.ndim != 2:
+        raise ValueError(f"fluxmap must be 2D (ny, nx). Got shape {fluxmap.shape}")
 
-    # Masking invalid values as Gini undefined for negative values and negative flux has no physical meaning for SF
+    flux = fluxmap.ravel()
+
+    # baseline valid data must have finite and positive flux
     valid = np.isfinite(flux) & (flux > 0)
 
-    # signal to noise cut (need to evolve)
     if fluxerr is not None:
-        err = fluxerr.flatten()
+        fluxerr = np.asarray(fluxerr)
+        if fluxerr.shape != fluxmap.shape:
+            raise ValueError(f"fluxerr shape {fluxerr.shape} must match fluxmap shape {fluxmap.shape}")
+
+        err = fluxerr.ravel()
+
+        # require finite, positive errors
+        valid &= np.isfinite(err) & (err > 0)
+
+        # apply S/N cut safely
         valid &= (flux / err) >= sn_cut
 
     flux = flux[valid]
 
-    if len(flux) == 0:
+    if flux.size == 0:
         return np.nan
-        # what to return if no pixels make it through the data cuts
 
-    # Sort fluxes, ix_(i)​
     flux_sorted = np.sort(flux)
-    n = len(flux_sorted)
+    n = flux_sorted.size
 
-    # Gini coefficient formula
-    index = np.arange(1, n + 1) # weighting brighter pixels more heavily 
+    index = np.arange(1, n + 1)
     gini = (2.0 * np.sum(index * flux_sorted) / (n * np.sum(flux_sorted))) - (n + 1) / n
-
     return gini
