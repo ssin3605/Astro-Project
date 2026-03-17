@@ -6,7 +6,7 @@ from src.morphology import gini_from_map
 from src.plotting import plot_map
 
 def main():
-    fitsfile = "data/fits/sami_dr3_Halpha_maps/6837_A_Halpha_default_1-comp.fits"
+    fitsfile = "gini/gini_outputs/tables/masked_halpha_maps/6837_A_Halpha_masked.fits"
 
     outdir = "gini/gini_outputs/figures"
     os.makedirs(outdir, exist_ok=True)
@@ -31,14 +31,14 @@ def main():
     plot_map(
         flux_sum,
         title=f"{catid} Hα | FLUX | Gini={g_sum:.2f}",
-        outfile=os.path.join(outdir, f"{catid}_Halpah_flux.png"),
+        outfile=os.path.join(outdir, f"{catid}_Halpah_masked_flux.png"), #edit name 
     )
 
     # Plot error sum layer 
     plot_map(
         err_sum,
         title=f"{catid} Hα | ERR",
-        outfile=os.path.join(outdir, f"{catid}_Halpha_error.png"),
+        outfile=os.path.join(outdir, f"{catid}_Halpha_masked_error.png"), #edit name
     )
 
 

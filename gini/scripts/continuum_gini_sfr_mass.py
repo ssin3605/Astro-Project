@@ -11,8 +11,8 @@ from src.signal_noise import sn_mask
 
 # Paths to datasets and output
 catalog_path = "data/catalogs/AR2022_SAMI_DR3_Mstar_SFR_GSWL_rescaled.fits"
-cont_dir = "data/fits/continuum_maps/"
-output_path = "gini/gini_outputs/tables/continuum_gini_sfr_mass.csv"
+cont_dir = "gini/gini_outputs/tables/masked_continuum_maps"
+output_path = "gini/gini_outputs/tables/continuum_gini_sfr_masked.csv"
 
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -44,7 +44,7 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Continuum Gini"
         continue
 
     # Glob matching is case-sensitive here; your real files use HALPHA
-    pattern = os.path.join(cont_dir, f"{catid}_*_HALPHA_cont_map_default.fits")
+    pattern = os.path.join(cont_dir, f"{catid}_*_HALPHA_cont_map_masked.fits")
     matches = glob.glob(pattern)
 
     if not matches:

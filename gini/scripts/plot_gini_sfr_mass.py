@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-infile = "gini/gini_outputs/tables/gini_sfr_mass.csv"
+infile = "gini/gini_outputs/tables/Halpha_gini_sfr_masked.csv"
 outdir = "gini/gini_outputs/figures"
 os.makedirs(outdir, exist_ok=True)
 
@@ -65,24 +65,24 @@ make_plot(
     r"$\log(M_\star)$",
     r"$\log(\mathrm{SFR})$",
     r"Gini(H$\alpha$)",
-    r"Gini(H$\alpha$) – No S/N Cut",
-    "gini_all__logSFR_vs_logMstar.png",
+    r"Gini(H$\alpha$ Masked) – No S/N Cut",
+    "Halpha_masked__logSFR_vs_logMstar.png",
     highlight_ids=highlight_ids,
     highlight_markers=highlight_markers,
     annotate=True
 )
 
-make_plot(
-    "logMstar", "logSFR", "gini_sn3",
-    r"$\log(M_\star)$",
-    r"$\log(\mathrm{SFR})$",
-    r"Gini(H$\alpha$)",
-    r"Gini(H$\alpha$) – S/N > 3",
-    "gini_sn3__logSFR_vs_logMstar.png",
-    highlight_ids=highlight_ids,
-    highlight_markers=highlight_markers,
-    annotate=True
-)
+#make_plot(
+    #"logMstar", "logSFR", "gini_sn3",
+    #r"$\log(M_\star)$",
+    #r"$\log(\mathrm{SFR})$",
+    #r"Gini(H$\alpha$)",
+    #r"Gini(H$\alpha$) – S/N > 3",
+    #"gini_sn3__logSFR_vs_logMstar.png",
+    #highlight_ids=highlight_ids,
+    #highlight_markers=highlight_markers,
+    #annotate=True
+#)
 
 
 # 2) logsSFR vs logMstar
@@ -91,23 +91,23 @@ make_plot(
     r"$\log(M_\star)$",
     r"$\log(\mathrm{sSFR})$",
     r"Gini(H$\alpha$)",
-    r"Gini(H$\alpha$) – No S/N Cut",
-    "gini_all__logsSFR_vs_logMstar.png",
+    r"Gini(H$\alpha$ Masked) – No S/N Cut",
+    "Halpha_masked__logsSFR_vs_logMstar.png",
     highlight_ids=highlight_ids,
     highlight_markers=highlight_markers,
     annotate=True
 )
 
-make_plot(
-    "logMstar", "logsSFR", "gini_sn3",
-    r"$\log(M_\star)$",
-    r"$\log(\mathrm{sSFR})$",
-    r"Gini(H$\alpha$)",
-    r"Gini(H$\alpha$) – S/N > 3",
-    "gini_sn3__logsSFR_vs_logMstar.png",
-    highlight_ids=highlight_ids,
-    highlight_markers=highlight_markers,
-    annotate=True
-)
+#make_plot(
+    #"logMstar", "logsSFR", "gini_sn3",
+    #r"$\log(M_\star)$",
+    #r"$\log(\mathrm{sSFR})$",
+    #r"Gini(H$\alpha$)",
+    #r"Gini(H$\alpha$) – S/N > 3",
+    #"gini_sn3__logsSFR_vs_logMstar.png",
+    #highlight_ids=highlight_ids,
+    #highlight_markers=highlight_markers,
+    #annotate=True
+#)
 
 print("Wrote figures to:", outdir)

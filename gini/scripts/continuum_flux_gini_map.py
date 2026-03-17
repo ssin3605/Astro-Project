@@ -6,7 +6,7 @@ from src.morphology import gini_from_map
 from src.plotting import plot_map
 
 def main():
-    fitsfile = "data/fits/continuum_maps/6837_A_HALPHA_cont_map_default.fits"
+    fitsfile = "gini/gini_outputs/tables/masked_continuum_maps/6837_A_HALPHA_cont_map_masked.fits"
 
     outdir = "gini/gini_outputs/figures"
     os.makedirs(outdir, exist_ok=True)
@@ -27,14 +27,14 @@ def main():
     plot_map(
         flux,
         title=f"{catid} Continuum | FLUX | Gini={g:.2f}",
-        outfile=os.path.join(outdir, f"{catid}_Continuum_flux.png"),
+        outfile=os.path.join(outdir, f"{catid}_Continuum_masked_flux.png"),
     )
 
     # Plot error sum layer 
     plot_map(
         err,
         title=f"{catid} Continuum | ERR",
-        outfile=os.path.join(outdir, f"{catid}_Continuum_error.png"),
+        outfile=os.path.join(outdir, f"{catid}_Continuum_masked_error.png"),
     )
 
 

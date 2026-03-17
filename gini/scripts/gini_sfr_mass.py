@@ -11,8 +11,8 @@ from src.signal_noise import sn_mask
 
 # Paths to datasets and output
 catalog_path = "data/catalogs/AR2022_SAMI_DR3_Mstar_SFR_GSWL_rescaled.fits"
-halpha_dir = "data/fits/sami_dr3_Halpha_maps/"
-output_path = "gini/gini_outputs/tables/gini_sfr_mass.csv"
+halpha_dir = "gini/gini_outputs/tables/masked_halpha_maps"
+output_path = "gini/gini_outputs/tables/Halpha_gini_sfr_masked.csv"
 
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -48,7 +48,7 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Gini"):
         continue
 
     # find correct 1-comp file
-    pattern = os.path.join(halpha_dir, f"{catid}_*_Halpha_default_1-comp.fits")
+    pattern = os.path.join(halpha_dir, f"{catid}_*_Halpha_masked.fits") #change depending on dataset
     matches = glob.glob(pattern)
 
     if not matches:
@@ -75,6 +75,8 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Gini"):
             flux_map = np.asarray(flux_cube[LAYER], dtype=float)
             err_map  = np.asarray(err_cube[LAYER], dtype=float)
         
+        ### NEED TO CHECK FOR USE IN MAKED DATA SET CASE
+
         # Building S/N mask (no S/N cut): finite & positive flux values taken
         mask_all = np.isfinite(flux_map) & (flux_map > 0)
         g_all = gini_from_mask(flux_map, mask_all, min_pixels=10)

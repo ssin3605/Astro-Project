@@ -3,15 +3,15 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Locating relevant directories
-halpha_csv = "gini/gini_outputs/tables/gini_sfr_mass.csv"
-cont_csv   = "gini/gini_outputs/tables/continuum_gini_sfr_mass.csv"
+# Locating relevant directories --> change between using masked and unmasked dataset
+halpha_csv = "gini/gini_outputs/tables/Halpha_gini_sfr_masked.csv"
+cont_csv   = "gini/gini_outputs/tables/continuum_gini_sfr_masked.csv"
 
-out_csv    = "gini/gini_outputs/tables/halpha_vs_continuum_gini_comparison.csv"
+out_csv    = "gini/gini_outputs/tables/halpha_vs_continuum_gini_masked_comparison.csv"
 plot_dir   = "gini/gini_outputs/figures"
 
 # Using S/N-cut gini values
-GINI_COL = "gini_sn3"   # or can switch for "gini_all" if needed
+GINI_COL = "gini_all"   # or can switch for "gini_all"/"gini_sn3" as needed
 
 # Quality cuts for ratio stability
 EPS = 1e-6                 # avoid division by zero
@@ -120,8 +120,8 @@ def main():
         merged_qc[f"{GINI_COL}_halpha"].to_numpy(),
         xlabel=f"Continuum {GINI_COL}",
         ylabel=f"Hα {GINI_COL}",
-        title=f"Hα vs Continuum Gini ({GINI_COL})",
-        filename=f"halpha_vs_continuum_{GINI_COL}.png",
+        title=f"Masked: Hα vs Continuum Gini ({GINI_COL})",
+        filename=f"masked_halpha_vs_continuum_{GINI_COL}.png",
         diag_11=True
     )
 
@@ -134,8 +134,8 @@ def main():
             merged_qc["gini_delta"].to_numpy(),
             xlabel="log M*",
             ylabel="ΔG = G(Hα) − G(cont)",
-            title="ΔG vs log M*",
-            filename="deltaG_vs_logMstar.png",
+            title="Masked: ΔG vs log M*",
+            filename="masked_deltaG_vs_logMstar.png",
             hline0=True
         )
 
@@ -147,8 +147,8 @@ def main():
             merged_qc["gini_delta"].to_numpy(),
             xlabel="log sSFR = logSFR − logM*",
             ylabel="ΔG = G(Hα) − G(cont)",
-            title="ΔG vs log sSFR",
-            filename="deltaG_vs_logsSFR.png",
+            title="Masked ΔG vs log sSFR",
+            filename="masked_deltaG_vs_logsSFR.png",
             hline0=True
         )
 
@@ -160,8 +160,8 @@ def main():
             merged_qc["gini_ratio"].to_numpy(),
             xlabel="log M*",
             ylabel="G(Hα) / G(cont)",
-            title="Gini ratio vs log M*",
-            filename="ratio_vs_logMstar.png"
+            title="Masked Gini ratio vs log M*",
+            filename="masked_ratio_vs_logMstar.png"
         )
 
     # 5) Histogram of ΔG
@@ -171,9 +171,9 @@ def main():
     plt.hist(vals, bins=40)
     plt.xlabel("ΔG = G(Hα) − G(cont)")
     plt.ylabel("Count")
-    plt.title("Distribution of ΔG")
+    plt.title("Masked Distribution of ΔG")
     plt.tight_layout()
-    plt.savefig(os.path.join(plot_dir, "deltaG_hist.png"), dpi=200)
+    plt.savefig(os.path.join(plot_dir, "masked_deltaG_hist.png"), dpi=200)
     plt.close()
 
     print("Wrote plots to:", plot_dir)

@@ -50,9 +50,18 @@ def sn_mask(flux: np.ndarray,
     Return boolean mask of pixels passing S/N cut.
     """
 
+    flux = np.asarray(flux, dtype=float)
+    uncertainty = np.asarray(uncertainty, dtype=float)
+
     sn = compute_sn(flux, uncertainty, mode=mode)
 
-    mask = np.isfinite(sn) & (sn >= sn_cut)
+    mask = (
+        np.isfinite(flux) &
+        np.isfinite(uncertainty) &
+        (uncertainty > 0) &
+        np.isfinite(sn) &
+        (sn >= sn_cut)
+    )
 
     if positive_flux:
         mask &= (flux > 0)
