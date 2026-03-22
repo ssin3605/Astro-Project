@@ -9,6 +9,8 @@ from tqdm import tqdm
 from src.gini import gini_from_mask
 from src.signal_noise import sn_mask
 
+## Use to create .csv file of Continuum based dataset with Gini, SFR, sSFR, Mass
+
 # Paths to datasets and output
 catalog_path = "data/catalogs/AR2022_SAMI_DR3_Mstar_SFR_GSWL_rescaled.fits"
 cont_dir = "gini/gini_outputs/tables/masked_continuum_maps"

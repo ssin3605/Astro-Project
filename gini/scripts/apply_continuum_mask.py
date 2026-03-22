@@ -2,6 +2,8 @@ from pathlib import Path
 import sys
 import numpy as np
 
+## Application of Continuum based mask onto the Halpha maps --> creates new masked .fits file for each galaxy saved under table
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT / "src"))
 

@@ -5,6 +5,8 @@ from src.io import read_sami_continuum_layers
 from src.morphology import gini_from_map
 from src.plotting import plot_map
 
+## Use to plot a continuum flux map
+
 def main():
     fitsfile = "gini/gini_outputs/tables/masked_continuum_maps/6837_A_HALPHA_cont_map_masked.fits"
 

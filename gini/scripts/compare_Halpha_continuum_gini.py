@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+## Use to compare the Halpha and Continuum Gini results --> basically plotting to ask if SF distributed differently to the stellar mass distribution
+
 # Locating relevant directories --> change between using masked and unmasked dataset
 halpha_csv = "gini/gini_outputs/tables/Halpha_gini_sfr_masked.csv"
 cont_csv   = "gini/gini_outputs/tables/continuum_gini_sfr_masked.csv"

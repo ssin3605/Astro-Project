@@ -5,6 +5,8 @@ from src.io import read_sami_Halpha_layers
 from src.morphology import gini_from_map
 from src.plotting import plot_map
 
+## Use to plot a galaxy's Halpha flux map
+
 def main():
     fitsfile = "gini/gini_outputs/tables/masked_halpha_maps/6837_A_Halpha_masked.fits"
 
