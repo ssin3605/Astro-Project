@@ -4,12 +4,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 ## Use to compare the Halpha and Continuum Gini results --> basically plotting to ask if SF distributed differently to the stellar mass distribution
+### Have merged Di's classifications with this --> should not need to re-run or use anymore as .csv's are created
+
 
 # Locating relevant directories --> change between using masked and unmasked dataset
-halpha_csv = "gini/gini_outputs/tables/Halpha_gini_sfr_masked.csv"
-cont_csv   = "gini/gini_outputs/tables/continuum_gini_sfr_masked.csv"
+halpha_csv = "gini/gini_outputs/tables/Halpha_gini.csv"
+cont_csv   = "gini/gini_outputs/tables/continuum_gini.csv"
 
-out_csv    = "gini/gini_outputs/tables/halpha_vs_continuum_gini_masked_comparison.csv"
+out_csv    = "gini/gini_outputs/tables/compare_gini.csv"
 plot_dir   = "gini/gini_outputs/figures"
 
 # Using S/N-cut gini values

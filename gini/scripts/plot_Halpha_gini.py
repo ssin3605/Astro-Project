@@ -5,7 +5,7 @@ import pandas as pd
 
 ## Use to plot data calulated in Halpha .csv file
 
-infile = "gini/gini_outputs/tables/Halpha_gini_sfr_masked.csv"
+infile = "gini/gini_outputs/tables/Halpha_gini.csv"
 outdir = "gini/gini_outputs/figures"
 os.makedirs(outdir, exist_ok=True)
 

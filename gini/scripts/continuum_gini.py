@@ -9,12 +9,14 @@ from tqdm import tqdm
 from src.gini import gini_from_mask
 from src.signal_noise import sn_mask
 
-## Use to create .csv file of Halpha based dataset with Gini, SFR, sSFR, Mass
+## Use to create .csv file of Continuum based dataset with Gini, SFR, sSFR, Mass
+### Have merged Di's classifications with this --> should not need to re-run or use anymore as .csv's are created
+
 
 # Paths to datasets and output
 catalog_path = "data/catalogs/AR2022_SAMI_DR3_Mstar_SFR_GSWL_rescaled.fits"
-halpha_dir = "gini/gini_outputs/tables/masked_halpha_maps"
-output_path = "gini/gini_outputs/tables/Halpha_gini_sfr_masked.csv"
+cont_dir = "gini/gini_outputs/tables/masked_continuum_maps"
+output_path = "gini/gini_outputs/tables/continuum_gini.csv"
 
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -25,8 +27,6 @@ df = cat.to_pandas()
 # Keep only usable galaxies
 df = df[np.isfinite(df["SFR_best"]) & np.isfinite(df["Mstar_best"])].copy()
 
-print("Galaxies with SFR + Mstar:", len(df))
-
 # Loop 
 results = []
 
@@ -35,13 +35,11 @@ missing = 0
 bad_open = 0
 nan_gini_all = 0
 nan_gini_sn3 = 0
+too_few_pixels_sn3 = 0
 
-# Selection of flux layer:
-# 0 = Gaussian-fit flux
-# 1 = summed/total flux
-LAYER = 1
+MIN_PIXELS = 10
 
-for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Gini"):
+for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Continuum Gini"):
 
     try:
         catid = int(row["catid"])
@@ -49,8 +47,8 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Gini"):
         missing += 1
         continue
 
-    # find correct 1-comp file
-    pattern = os.path.join(halpha_dir, f"{catid}_*_Halpha_masked.fits") #change depending on dataset
+    # Glob matching is case-sensitive here; your real files use HALPHA
+    pattern = os.path.join(cont_dir, f"{catid}_*_HALPHA_cont_map_masked.fits")
     matches = glob.glob(pattern)
 
     if not matches:
@@ -64,24 +62,19 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Gini"):
     try:
         with fits.open(filepath, memmap=True) as hdul:
 
-            # Using HDU names
-            flux_cube = hdul["PRIMARY"].data       # (2, 50, 50)
-            err_cube  = hdul["HALPHA_ERR"].data    # (2, 50, 50)
+            # Given continuum structure is:
+            # 0 PRIMARY                (50, 50)  flux map
+            # 1 HALPHA_CONT_STD_DEV    (50, 50)  std dev map (error)
+            flux_map = np.asarray(hdul["PRIMARY"].data, dtype=float)
+            err_map  = np.asarray(hdul["HALPHA_CONT_STD_DEV"].data, dtype=float)
 
-            if (flux_cube is None or err_cube is None or
-                np.ndim(flux_cube) != 3 or np.ndim(err_cube) != 3 or
-                flux_cube.shape[0] < 2 or err_cube.shape[0] < 2):
+            if flux_map.ndim != 2 or err_map.ndim != 2:
                 bad_open += 1
                 continue
 
-            flux_map = np.asarray(flux_cube[LAYER], dtype=float)
-            err_map  = np.asarray(err_cube[LAYER], dtype=float)
-        
-        ### NEED TO CHECK FOR USE IN MAKED DATA SET CASE
-
         # Building S/N mask (no S/N cut): finite & positive flux values taken
         mask_all = np.isfinite(flux_map) & (flux_map > 0)
-        g_all = gini_from_mask(flux_map, mask_all, min_pixels=10)
+        g_all = gini_from_mask(flux_map, mask_all, min_pixels=MIN_PIXELS)
 
         # S/N mask 
         mask_sn3 = sn_mask(
@@ -90,11 +83,11 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Gini"):
             sn_cut=3.0,
             mode="error",   # change error type if dataset changes
         )
-
-        g_sn3 = gini_from_mask(flux_map, mask_sn3, min_pixels=10)
-
-        # sanity check: number of pixels passing the mask used for gini_sn3
         n_sn3 = int(np.sum(mask_sn3))
+        if n_sn3 < MIN_PIXELS:
+            too_few_pixels_sn3 += 1
+
+        g_sn3 = gini_from_mask(flux_map, mask_sn3, min_pixels=MIN_PIXELS)
 
         if not np.isfinite(g_all):
             nan_gini_all += 1
@@ -111,7 +104,7 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Gini"):
 
     results.append({
         "catid": catid,
-        "halpha_file": os.path.basename(filepath),
+        "continuum_file": os.path.basename(filepath),
         "logSFR": logSFR,
         "logMstar": logM,
         "logsSFR": logsSFR,
@@ -121,17 +114,18 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Gini"):
     })
 
 if len(results) == 0:
-    raise RuntimeError("No Halpha FITS files matched. Check halpha_dir and filename pattern.")
+    raise RuntimeError("No continuum FITS files matched. Check cont_dir and filename pattern.")
 
 out = pd.DataFrame(results)
 
 # Saving calculations to .csv
 out.to_csv(output_path, index=False)
 
-print(f"Matched Halpha files: {found}")
-print(f"Missing Halpha files: {missing}")
+print(f"Matched continuum files: {found}")
+print(f"Missing continuum files: {missing}")
 print(f"Bad/failed opens:     {bad_open}")
 print(f"NaN Gini (no cut):    {nan_gini_all}")
 print(f"NaN Gini (S/N>3):     {nan_gini_sn3}")
+print(f"Too few SN pixels:       {too_few_pixels_sn3}")
 print("Wrote:", output_path)
 print("Rows written:", len(out))
