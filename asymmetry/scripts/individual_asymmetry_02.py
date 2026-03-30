@@ -218,10 +218,10 @@ def main():
 
     # Save plots
     plot_asymmetry(img, rotated, residual, A_geom, A_min, best_centre,
-                   outpath=os.path.join(outdir, f"{galaxy_id}_halpha_asymmetry.png"))
+                   outpath=os.path.join(outdir, f"{galaxy_id}_Halpha_centre_fit.png"))
 
     plot_A_grid(A_grid, offsets, best_centre,
-                outpath=os.path.join(outdir, f"{galaxy_id}_A_grid_search.png"))
+                outpath=os.path.join(outdir, f"{galaxy_id}_asymmetry_02_grid_search.png"))
 
 
 if __name__ == "__main__":

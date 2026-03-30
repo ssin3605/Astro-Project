@@ -139,7 +139,7 @@ def main():
 
     print(f"Asymmetry index A for {os.path.basename(fits_path)} = {A:.6f}")
 
-    plot_path = os.path.join(outdir, "7139_A_Halpha_asymmetry_residuals.png")
+    plot_path = os.path.join(outdir, "7139_Halpha_asymmetry_01.png")
     plot_asymmetry_products(img, rotated, residual, A, plot_path)
 
     print(f"Saved residual plot to: {plot_path}")
