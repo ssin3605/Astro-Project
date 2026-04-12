@@ -1,22 +1,22 @@
 """
-Batch Hα Asymmetry Analysis — Test Run of 10 Galaxies
-======================================================
-Scales up individual_asymmetry_02.py to iterate through a test sample
-before running through the full SAMI dataset.
+Iterates through the full SAMI masked Hα FITS catalogue, applying the
+error-subtracted asymmetry pipeline from asymmetry_03.py.
 
-Outputs a single CSV table of A_geom, A_min, and delta_A per galaxy.
-For per-galaxy figures, use individual_asymmetry_02.py directly.
+For per-galaxy figures use asymmetry_03.py directly.
+Merge Wang's classifications over the output CSV using asymmetry_merging.py.
 """
 
 ## Note: I merge Wang's classifications over the .csv created in this script
+
 
 import os
 import numpy as np
 import pandas as pd
 from glob import glob
 
-from individual_asymmetry_02 import (
-    extract_flux_map,
+from asymmetry.scripts.individual_asymmetry_03 import (
+    extract_flux_and_error,
+    apply_error_subtraction,
     compute_A,
     grid_search_centre,
 )
@@ -25,7 +25,7 @@ from individual_asymmetry_02 import (
 
 MAPS_DIR = "gini/gini_outputs/tables/masked_halpha_maps"
 OUTDIR   = "asymmetry/outputs/tables"
-N_TEST   = None                                   # set to None to run full dataset
+N_TEST   = None   # set to an integer (e.g. 10) for a test run, None for full dataset
 
 os.makedirs(OUTDIR, exist_ok=True)
 
@@ -38,26 +38,34 @@ def get_galaxy_id(fits_path):
 
 def process_galaxy(fits_path):
     """
-    Run the full asymmetry pipeline on a single galaxy.
-    Returns a results dict, or None if the map is empty.
+    Run the full error-subtracted asymmetry pipeline on a single galaxy.
+    Returns a results dict, or None if the cleaned map is empty.
     """
-    img = extract_flux_map(fits_path)
-    img = np.nan_to_num(img, nan=0.0, posinf=0.0, neginf=0.0)
+    # 1. Load flux and error maps
+    flux, error = extract_flux_and_error(fits_path)
+    flux  = np.nan_to_num(flux,  nan=0.0, posinf=0.0, neginf=0.0)
+    error = np.nan_to_num(error, nan=0.0, posinf=0.0, neginf=0.0)
+
+    # 2. Subtract error, clip negatives to zero
+    img = apply_error_subtraction(flux, error)
 
     if np.sum(img != 0) == 0:
         return None
 
-    A_geom, _, _              = compute_A(img, cy=24.5, cx=24.5)
-    best_centre, A_min, _, _  = grid_search_centre(img)
-    delta_A                   = A_geom - A_min
+    # 3. Asymmetry at geometric centre
+    A_geom, _, _             = compute_A(img, cy=24.5, cx=24.5)
+
+    # 4. Grid search for minimum A
+    best_centre, A_min, _, _ = grid_search_centre(img)
+    delta_A                  = A_geom - A_min
 
     return {
-        "catid" : get_galaxy_id(fits_path),
-        "A_geom"    : round(A_geom,  6),
-        "A_min"     : round(A_min,   6),
-        "delta_A"   : round(delta_A, 6),
-        "best_cy"   : round(best_centre[0], 3),
-        "best_cx"   : round(best_centre[1], 3),
+        "catid"   : get_galaxy_id(fits_path),
+        "A_geom"  : round(A_geom,  6),
+        "A_min"   : round(A_min,   6),
+        "delta_A" : round(delta_A, 6),
+        "best_cy" : round(best_centre[0], 3),
+        "best_cx" : round(best_centre[1], 3),
     }
 
 # ── Main ───────────────────────────────────────────────────────────────────────
@@ -80,7 +88,7 @@ def main():
         try:
             result = process_galaxy(fits_path)
             if result is None:
-                print("SKIP — empty flux map")
+                print("SKIP — empty map after error subtraction")
             else:
                 results.append(result)
                 print(f"A_geom = {result['A_geom']:.4f}   "
@@ -96,7 +104,9 @@ def main():
     df.to_csv(csv_path, index=False)
 
     print(f"\nSummary table saved → {csv_path}")
-    print(f"Processed: {len(results)}   Skipped: {len(test_files) - len(results) - len(failed)}   Failed: {len(failed)}")
+    print(f"Processed: {len(results)}   "
+          f"Skipped: {len(test_files) - len(results) - len(failed)}   "
+          f"Failed: {len(failed)}")
     if failed:
         print(f"Failed galaxies: {failed}")
 

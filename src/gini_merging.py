@@ -128,43 +128,68 @@ print(lookup_sf_preferred['galclass'].value_counts().sort_index().to_string())
 def merge_classifications(csv_path, lookup_df, label):
     """
     Left-join classification columns onto an existing Gini CSV.
-    Preserves all existing rows and columns exactly.
-    Adds: spectral_class, environment, galclass, re, ellip,
-          z, g_i, Mstar_txt, seeing, seeing_re,
-          source_file, conflict_flag
+
+    - Ensures CATID is used consistently (uppercase)
+    - Removes any previously merged classification columns
+    - Prevents duplicate (_x, _y) columns
+    - Safe to rerun multiple times
     """
+
     df = pd.read_csv(csv_path)
     original_len = len(df)
+    
+    # Standardise CATID
+    if 'catid' in df.columns:
+        df = df.rename(columns={'catid': 'CATID'})
 
-    # Rename Mstar from .txt to avoid collision with existing logMstar
-    lookup_renamed = lookup_df.copy()
-    if 'Mstar' in lookup_renamed.columns:
-        lookup_renamed = lookup_renamed.rename(columns={'Mstar': 'Mstar_txt'})
+    if 'CATID' not in df.columns:
+        raise ValueError(f"{label} has no CATID column.")
 
+    # Ensure numeric type for safe merging
+    df['CATID'] = pd.to_numeric(df['CATID'], errors='coerce')
+    lookup_df['CATID'] = pd.to_numeric(lookup_df['CATID'], errors='coerce')
+
+    # Drop existing classification columns (CRITICAL FIX)
+    cols_to_drop = [
+        'spectral_class', 'environment', 'galclass',
+        're', 'ellip', 'z', 'g_i', 'Mstar_txt',
+        'seeing', 'seeing_re', 'source_file', 'conflict_flag'
+    ]
+
+    df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
+
+    # Prepare lookup
+    lookup_clean = lookup_df.copy()
+
+    if 'Mstar' in lookup_clean.columns:
+        lookup_clean = lookup_clean.rename(columns={'Mstar': 'Mstar_txt'})
+
+    # Merge
     merged = df.merge(
-        lookup_renamed,
-        left_on='catid',
-        right_on='CATID',
+        lookup_clean,
+        on='CATID',
         how='left'
-    ).drop(columns='CATID')
+    )
 
-    # Fill unclassified galaxies
+    # Fill missing classifications
     merged['spectral_class'] = merged['spectral_class'].fillna('Unclassified')
     merged['environment']    = merged['environment'].fillna('Unknown')
     merged['conflict_flag']  = merged['conflict_flag'].fillna(False)
 
-    # Verify row count unchanged
+    # ============================================================
+    # STEP 6: Sanity checks + reporting
+    # ============================================================
     assert len(merged) == original_len, \
         f'Row count changed in {label}: {original_len} → {len(merged)}'
 
-    # Report
-    print(f'\n  {label}:')
-    print(f'    Rows          : {len(merged)} (unchanged)')
-    print(f'    SF            : {(merged["spectral_class"] == "SF").sum()}')
-    print(f'    Composite     : {(merged["spectral_class"] == "Composite").sum()}')
-    print(f'    Unclassified  : {(merged["spectral_class"] == "Unclassified").sum()}')
-    print(f'    Conflict flag : {merged["conflict_flag"].sum()}')
-    print(f'    New columns   : {[c for c in merged.columns if c not in df.columns]}')
+    print(f"\n  {label}:")
+    print(f"    Rows          : {len(merged)} (unchanged)")
+    print(f"    SF            : {(merged['spectral_class'] == 'SF').sum()}")
+    print(f"    Composite     : {(merged['spectral_class'] == 'Composite').sum()}")
+    print(f"    Unclassified  : {(merged['spectral_class'] == 'Unclassified').sum()}")
+    print(f"    Conflict flag : {merged['conflict_flag'].sum()}")
+
+    print(f"{label} columns AFTER merge:", merged.columns.tolist())
 
     return merged
 

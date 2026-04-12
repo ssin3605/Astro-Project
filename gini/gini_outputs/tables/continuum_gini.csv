@@ -1,4 +1,4 @@
-catid,continuum_file,logSFR,logMstar,logsSFR,gini_all,gini_sn3,n_sn3_pixels,spectral_class,environment,galclass,re,ellip,z,g_i,Mstar_txt,seeing,seeing_re,source_file,conflict_flag
+CATID,continuum_file,logSFR,logMstar,logsSFR,gini_all,gini_sn3,n_sn3_pixels,spectral_class,environment,galclass,re,ellip,z,g_i,Mstar_txt,seeing,seeing_re,source_file,conflict_flag
 6837,6837_A_HALPHA_cont_map_masked.fits,-0.1081191397756049,9.083897590637209,-9.192016730412812,0.2340647924044778,0.2340647924044778,141,Unclassified,Unknown,,,,,,,,,,False
 7139,7139_A_HALPHA_cont_map_masked.fits,-1.4812175131637677,10.622782578388966,-12.104000091552734,0.5463701734746951,0.5463701734746951,176,SF,GAMA,3.0,1.23,0.4654,0.07697,1.36,10.63,1.498821,1.2185535,SF_GAMA,True
 7206,7206_A_HALPHA_cont_map_masked.fits,0.5071057664992104,10.673105894291568,-10.166000127792358,0.4064951962554028,0.4064951962554028,322,SF,GAMA,2.0,3.33,0.3271,0.09471,0.91,10.48,1.498821,0.4500963,SF_GAMA,True

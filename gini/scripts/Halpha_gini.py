@@ -111,7 +111,7 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Computing Gini"):
     logsSFR = logSFR - logM  # since both are log10
 
     results.append({
-        "catid": catid,
+        "CATID": catid,
         "halpha_file": os.path.basename(filepath),
         "logSFR": logSFR,
         "logMstar": logM,

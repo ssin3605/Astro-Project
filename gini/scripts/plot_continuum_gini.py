@@ -11,7 +11,7 @@ os.makedirs(outdir, exist_ok=True)
 
 df = pd.read_csv(infile)
 
-highlight_ids = [617665, 107214, 9008500890, 6821]  # 4 selected catids
+highlight_ids = [617665, 107259, 105420, 9008500868]  # 4 selected catids
 highlight_markers = ["o", "s", "^", "D"]         # circle, square, triangle, diamond
 
 def make_plot(x, y, c, xlabel, ylabel, clabel, title, outname, highlight_ids=None, highlight_markers=None, annotate=True):
@@ -31,10 +31,10 @@ def make_plot(x, y, c, xlabel, ylabel, clabel, title, outname, highlight_ids=Non
         if highlight_markers is None:
             highlight_markers = ["o", "s", "^", "D"]
 
-        for i, catid in enumerate(highlight_ids):
-            sel = d[d["catid"] == catid]
+        for i, CATID in enumerate(highlight_ids):
+            sel = d[d["CATID"] == CATID]
             if sel.empty:
-                print(f"WARNING: catid={catid} not found in plotted subset for {outname}")
+                print(f"WARNING: catid={CATID} not found in plotted subset for {outname}")
                 continue
 
             m = highlight_markers[i % len(highlight_markers)]
@@ -43,19 +43,19 @@ def make_plot(x, y, c, xlabel, ylabel, clabel, title, outname, highlight_ids=Non
                         s=180, marker=m,
                         facecolors="none", edgecolors="k",
                         linewidths=2.0, zorder=5,
-                        label=f"{catid}")
+                        label=f"{CATID}")
 
             if annotate:
                 # if duplicate rows exist, annotate the first
                 r = sel.iloc[0]
-                plt.annotate(str(int(catid)),
+                plt.annotate(str(int(CATID)),
                              (r[x], r[y]),
                              textcoords="offset points",
                              xytext=(6, 6),
                              fontsize=9, weight="bold",
                              color="k")
 
-        plt.legend(title="Highlighted catid", frameon=True, loc="best")
+        plt.legend(title="Highlighted CATID", frameon=True, loc="best")
     
     plt.tight_layout()
     plt.savefig(os.path.join(outdir, outname), dpi=200)
@@ -67,7 +67,7 @@ make_plot(
     r"$\log(M_\star)$",
     r"$\log(\mathrm{SFR})$",
     r"Gini(Continuum)",
-    r"Gini(Continuum Masked) – No S/N Cut",
+    r"Gini(Continuum Masked)",
     "cont_masked__logSFR_vs_logMstar.png",
     highlight_ids=highlight_ids,
     highlight_markers=highlight_markers,
@@ -93,7 +93,7 @@ make_plot(
     r"$\log(M_\star)$",
     r"$\log(\mathrm{sSFR})$",
     r"Gini(Continuum)",
-    r"Gini(Continuum Masked) – No S/N Cut",
+    r"Gini(Continuum Masked)",
     "cont_masked__logsSFR_vs_logMstar.png",
     highlight_ids=highlight_ids,
     highlight_markers=highlight_markers,
