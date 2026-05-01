@@ -100,7 +100,7 @@ def main():
 
     # Save results
     df       = pd.DataFrame(results)
-    csv_path = os.path.join(OUTDIR, "asymmetry_results.csv")
+    csv_path = os.path.join(OUTDIR, "asymmetry_test.csv")
     df.to_csv(csv_path, index=False)
 
     print(f"\nSummary table saved → {csv_path}")

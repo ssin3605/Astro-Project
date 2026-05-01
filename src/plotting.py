@@ -4,7 +4,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 def plot_map(fluxmap, title=None, outfile=None): #, logscale=True
     """
     Plot an Halpha flux map.
