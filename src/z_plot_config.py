@@ -10,18 +10,18 @@ AXIS_LABELS = {
     "log_sSFR"   : r"$\log(\mathrm{sSFR} / \mathrm{yr}^{-1})$",
     "delta_ms"   : r"$\Delta\mathrm{MS}$",
     "galclass"   : "Environment (halo mass bin)",
-    "gini_all_halpha" : "Gini",
-    "CIndex"     : "Concentration",
-    "A_min"      : "Asymmetry",
+    "G"          : "Gini",
+    "C"          : "Concentration",
+    "A"          : "Asymmetry",
     "S"          : "Smoothness",
 }
 
 # ── Colour scales per metric ──────────────────────────────────────────────────
 
 CMAPS = {
-    "gini_all_halpha" : "plasma",
-    "CIndex"          : "plasma",
-    "A_min"           : "plasma",
+    "G"               : "plasma",
+    "C"               : "plasma",
+    "A"               : "plasma",
     "S"               : "plasma",
     "delta_ms"        : "coolwarm",
     "log_SFR"         : "viridis",
@@ -49,9 +49,20 @@ GALCLASS_COLOURS = {
     4      : "#EE6677",
 }
 
+# ── Highlight markers ─────────────────────────────────────────────────────────
+# Up to 4 galaxies can be highlighted by CATID in any scatter plot.
+# Each gets a distinct marker shape and a label showing its CATID.
+
+HIGHLIGHT_STYLES = [
+    {"marker": "o", "label": "circle"},
+    {"marker": "s", "label": "square"},
+    {"marker": "^", "label": "triangle"},
+    {"marker": "D", "label": "diamond"},
+]
+
 # ── Valid axis columns ────────────────────────────────────────────────────────
 
 VALID_X = {"log_Mstar", "galclass"}
 VALID_Y = {"log_SFR", "log_sSFR", "log_Mstar", "delta_ms", "galclass"}
-VALID_C = {"gini_all_halpha", "CIndex", "A_min", "S",
+VALID_C = {"G", "C", "A", "S",
            "delta_ms", "log_SFR", "log_sSFR", "log_Mstar", "galclass"}

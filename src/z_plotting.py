@@ -1,8 +1,6 @@
 # src/plotting.py
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
 import pandas as pd       
 import sys
 import os
@@ -13,6 +11,71 @@ from src.sfms       import lee2015_sfms
 from src.z_samples    import get_sample
 from src.z_plot_config import (AXIS_LABELS, CMAPS, VALID_X, VALID_Y, VALID_C,
                               GALCLASS_ORDER, GALCLASS_COLOURS, GALCLASS_LABELS)
+
+def draw_highlights(ax, df_plot, x_col, y_col, catids):
+    """
+    Circle up to 4 galaxies by CATID on an existing axes.
+    Each galaxy gets a distinct hollow marker and a CATID label.
+
+    Parameters
+    ----------
+    ax      : matplotlib Axes
+    df_plot : DataFrame   already filtered plotting sample
+    x_col   : str         x-axis column
+    y_col   : str         y-axis column
+    catids  : list        up to 4 CATID values (int or str)
+    """
+    from src.z_plot_config import HIGHLIGHT_STYLES
+
+    if not catids:
+        return
+
+    legend_elements = []
+
+    for i, catid in enumerate(catids[:4]):
+        style = HIGHLIGHT_STYLES[i]
+        row   = df_plot[df_plot["CATID"].astype(str) == str(catid)]
+
+        if row.empty:
+            print(f"  [highlight] CATID {catid} not found in current sample")
+            continue
+
+        xval = row[x_col].values[0]
+        yval = row[y_col].values[0]
+
+        ax.scatter(xval, yval,
+                   marker=style["marker"],
+                   s=120,
+                   facecolors="none",
+                   edgecolors="black",
+                   linewidths=1.8,
+                   zorder=10)
+
+        ax.annotate(str(catid),
+                    xy=(xval, yval),
+                    xytext=(6, 6),
+                    textcoords="offset points",
+                    fontsize=7,
+                    fontweight="bold",
+                    color="black",
+                    zorder=11)
+
+        legend_elements.append(
+            plt.scatter([], [],
+                        marker=style["marker"],
+                        s=60,
+                        facecolors="none",
+                        edgecolors="black",
+                        linewidths=1.5,
+                        label=str(catid))
+        )
+
+    if legend_elements:
+        ax.legend(handles=legend_elements,
+                  title="Highlighted CATID",
+                  fontsize=7,
+                  title_fontsize=7,
+                  loc="upper left")
 
 
 def _validate_config(config):
@@ -31,30 +94,21 @@ def _validate_config(config):
 
 def plot_scatter(df, sfms_params, config, ax=None):
     """
-    Core scatter plot function. Driven entirely by config dict.
+    Core scatter plot function driven entirely by config dict.
 
-    Parameters
-    ----------
-    df : DataFrame
-        Full master_sfms dataframe (unfiltered).
-    sfms_params : array [S0, a1, Mt]
-        SFMS best-fit parameters from sfms_prep.py.
-    config : dict with keys:
-        x          : str   column for x-axis
-        y          : str   column for y-axis
-        colour_by  : str   column for colour scale
-        sample     : str   key from SAMPLE_REGISTRY (default "all")
-        sfr_cut    : float minimum log(SFR) filter (default None)
-        show_sfms  : bool  overlay SFMS line (default True)
-        show_sfms_bands : bool  overlay ±0.3 dex bands (default False)
-        title      : str   optional plot title
-        vmin/vmax  : float optional colour scale limits
-    ax : matplotlib Axes or None
-        If None, a new figure is created.
-
-    Returns
-    -------
-    fig, ax
+    Config keys
+    -----------
+    x                : str    x-axis column
+    y                : str    y-axis column
+    colour_by        : str    colour scale column
+    sample           : str    key from SAMPLE_REGISTRY (default "all")
+    sfr_cut          : float  minimum log(SFR) filter (default None)
+    show_sfms        : bool   overlay SFMS line (default True)
+    show_sfms_bands  : bool   overlay ±0.3 dex bands (default False)
+    show_median_bins : bool   overlay median per mass bin (default False)
+    median_sfr_floor : float  SFR floor for median bins (default -1.0)
+    title            : str    optional plot title
+    vmin / vmax      : float  optional colour scale limits
     """
     _validate_config(config)
 
@@ -64,8 +118,9 @@ def plot_scatter(df, sfms_params, config, ax=None):
     sample_key = config.get("sample",    "all")
     min_sfr    = config.get("sfr_cut",   None)
     show_sfms  = config.get("show_sfms", True)
-    show_bands = config.get("show_sfms_bands", False)
-    title      = config.get("title",     "")
+    show_bands = config.get("show_sfms_bands",  False)
+    show_meds  = config.get("show_median_bins", False)
+    title      = config.get("title", "")
 
     # ── Apply sample filter ───────────────────────────────────────
     df_plot = get_sample(df, sample_key, min_log_sfr=min_sfr)
@@ -111,7 +166,7 @@ def plot_scatter(df, sfms_params, config, ax=None):
         ax.legend(fontsize=8, loc="upper left",
                   title="Environment", title_fontsize=8)
 
-    # ── SFMS overlay (only meaningful when y=log_SFR, x=log_Mstar) ──
+    # ── SFMS line: log_SFR vs log_Mstar ───────────────────────────
     if show_sfms and x_col == "log_Mstar" and y_col == "log_SFR":
         mass_range = np.linspace(
             df_plot[x_col].min() - 0.1,
@@ -122,19 +177,62 @@ def plot_scatter(df, sfms_params, config, ax=None):
 
         ax.plot(mass_range, sfms_line,
                 color="gold", lw=2, ls="-",
-                label="SFMS", zorder=5)
+                label="SFMS (Lee+2015 fit)", zorder=5)
 
         if show_bands:
             ax.fill_between(mass_range,
                             sfms_line - 0.3, sfms_line + 0.3,
                             color="gold", alpha=0.15, zorder=4)
 
+    # ── SFMS line: log_sSFR vs log_Mstar ──────────────────────────
+    if show_sfms and x_col == "log_Mstar" and y_col == "log_sSFR":
+        mass_range = np.linspace(
+            df_plot[x_col].min() - 0.1,
+            df_plot[x_col].max() + 0.1,
+            300
+        )
+        sfms_ssfr = lee2015_sfms(mass_range, *sfms_params) - mass_range
+        ax.plot(mass_range, sfms_ssfr,
+                color="gold", lw=2, ls="-",
+                label="SFMS", zorder=5)
+
+    # ── Median bin overlay ────────────────────────────────────────
+    if show_meds and x_col == "log_Mstar" and y_col == "log_SFR":
+        sfr_floor = config.get("median_sfr_floor", -1.0)
+        bins      = np.arange(8.0, 11.8, 0.2)
+        bin_mids  = bins[:-1] + 0.1
+        medians, valid_mid = [], []
+
+        for i in range(len(bins) - 1):
+            mask = (
+                (df_plot[x_col] >= bins[i]) &
+                (df_plot[x_col] <  bins[i + 1]) &
+                np.isfinite(df_plot[y_col]) &
+                (df_plot[y_col] >= sfr_floor)
+            )
+            if mask.sum() >= 5:
+                medians.append(np.median(df_plot.loc[mask, y_col]))
+                valid_mid.append(bin_mids[i])
+
+        ax.plot(valid_mid, medians,
+                color="#2d8a4e", lw=1.5, ls="--",
+                marker="o", markersize=4,
+                label="Median per bin", zorder=6)
+
+    # ── Legend for SFMS/median overlays ───────────────────────────
+    if x_col == "log_Mstar" and y_col in ("log_SFR", "log_sSFR"):
         ax.legend(fontsize=8, loc="upper left")
 
-    # ── Labels ───────────────────────────────────────────────────
+    # ── Highlights ───────────────────────────────────────────────
+    highlight_ids = config.get("highlight", [])
+    if highlight_ids and x_col in ("log_Mstar",) and \
+       y_col in ("log_SFR", "log_sSFR"):
+        draw_highlights(ax, df_plot, x_col, y_col, highlight_ids)
+
+
+    # ── Axis labels and title ─────────────────────────────────────
     ax.set_xlabel(AXIS_LABELS.get(x_col, x_col), fontsize=11)
     ax.set_ylabel(AXIS_LABELS.get(y_col, y_col), fontsize=11)
-
     if title:
         ax.set_title(title, fontsize=11)
 

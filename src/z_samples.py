@@ -5,50 +5,52 @@ import pandas as pd
 
 
 def all_galaxies(df):
-    """No filtering — full master_sfms sample."""
+    """No filtering — full master sample."""
     return pd.Series(np.ones(len(df), dtype=bool), index=df.index)
 
 
 def wang_only(df):
-    """Galaxies present in the Wang+2022 concentration SF catalogue."""
-    return df["in_wang_conc"] == True
+    """All galaxies present in the Wang+2022 concentration SF catalogue."""
+    return (df["in_wang_sf"] == True) | (df["in_wang_composite"] == True)
 
 
-def wang_sf_only(df):
-    """Wang+2022 galaxies that are also spectroscopically star-forming."""
-    return wang_only(df) & (df["spectral_class"] == "SF")
+def pure_sf(df):
+    """pure_SF galaxies — in Wang SF files only, no composite."""
+    return df["spectral_class"] == "pure_SF"
 
 
-def sf_only(df):
-    """All spectroscopically classified SF galaxies across any source."""
-    return df["spectral_class"] == "SF"
+def composite_sf(df):
+    """composite_SF galaxies — in both Wang SF and composite files."""
+    return df["spectral_class"] == "composite_SF"
+
+
+def has_sfr(df):
+    """Galaxies with a valid (non-NaN) SFR value."""
+    return df["SFR"].notna()
 
 
 def close_pairs_100kpc(df):
-    """Galaxies with a close pair within 100 kpc."""
+    """Galaxies with a confirmed close pair within 100 kpc."""
     return df["gama_close_pair_100kpc"] == True
 
 
 def close_pairs_50kpc(df):
-    """Galaxies with a close pair within 50 kpc."""
+    """Galaxies with a confirmed close pair within 50 kpc."""
     return df["gama_close_pair_50kpc"] == True
 
 
 def gama_region(df):
-    """Galaxies in the GAMA environment field."""
+    """Galaxies in the GAMA environment."""
     return df["environment"] == "GAMA"
 
 
 def cluster_region(df):
-    """Galaxies in the Cluster environment field."""
+    """Galaxies in the cluster environment."""
     return df["environment"] == "Cluster"
 
 
 def sfr_cut(df, min_log_sfr=-2.0):
-    """
-    Galaxies above a minimum log(SFR) threshold.
-    Combine with other filters as needed.
-    """
+    """Galaxies above a minimum log(SFR) threshold."""
     return df["log_SFR"] > min_log_sfr
 
 
@@ -57,14 +59,15 @@ def sfr_cut(df, min_log_sfr=-2.0):
 # Filters can be combined with & in the notebook or here as named combos.
 
 SAMPLE_REGISTRY = {
-    "all"              : all_galaxies,
-    "wang"             : wang_only,
-    "wang_sf"          : wang_sf_only,
-    "sf_only"          : sf_only,
-    "close_pairs_100"  : close_pairs_100kpc,
-    "close_pairs_50"   : close_pairs_50kpc,
-    "gama"             : gama_region,
-    "cluster"          : cluster_region,
+    "all"               : all_galaxies,
+    "wang"              : wang_only,
+    "pure_sf"           : pure_sf,
+    "composite_sf"      : composite_sf,
+    "has_sfr"           : has_sfr,
+    "close_pairs_100"   : close_pairs_100kpc,
+    "close_pairs_50"    : close_pairs_50kpc,
+    "gama"              : gama_region,
+    "cluster"           : cluster_region
 }
 
 
@@ -76,7 +79,7 @@ def get_sample(df, sample_key, min_log_sfr=None):
     ----------
     df : DataFrame
     sample_key : str
-        Key from SAMPLE_REGISTRY, or "all".
+        Key from SAMPLE_REGISTRY.
     min_log_sfr : float or None
         If provided, additionally applies an SFR floor cut.
 

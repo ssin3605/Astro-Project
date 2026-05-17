@@ -26,8 +26,9 @@ def lee2015_sfms(log_mstar, S0, a1, Mt, t=13.5):
 
 
 def fit_ridge_line(log_mstar, log_sfr,
-                   mass_range=(9.0, 11.2), bin_width=0.2,
-                   min_galaxies=10, n_sfr_bins=20):
+                   mass_range=(9.0, 11.0), bin_width=0.2,
+                   min_galaxies=10, n_sfr_bins=20,
+                   sfr_floor=-1.0):
     """
     Fit the Lee+2015 form to the ridge line of the data.
     Follows Tuntipong+2024: peak of log(SFR) histogram per mass bin.
@@ -37,21 +38,23 @@ def fit_ridge_line(log_mstar, log_sfr,
     log_mstar, log_sfr : array-like
     mass_range : tuple
         (min, max) log stellar mass range to bin over.
+        Upper limit reduced to 11.0 to avoid quenched-dominated bins.
     bin_width : float
         Width of each mass bin in dex.
     min_galaxies : int
         Minimum galaxies required in a bin to use it in the fit.
     n_sfr_bins : int
         Number of histogram bins used to find the SFR peak per mass bin.
+    sfr_floor : float
+        Minimum log(SFR) to include in each bin before finding the peak.
+        Excludes quenched galaxies from pulling the histogram peak down.
+        Default -1.0 is appropriate for Hα-based SFRs.
 
     Returns
     -------
     sfms_params : array [S0, a1, Mt]
-        Best-fit parameters for lee2015_sfms.
-    ridge_mass : array
-        Mass bin midpoints used in the fit.
-    ridge_sfr : array
-        SFR peak values at each mass bin midpoint.
+    ridge_mass  : array
+    ridge_sfr   : array
     """
     mass_bins = np.arange(mass_range[0], mass_range[1], bin_width)
     ridge_mass, ridge_sfr = [], []
@@ -60,7 +63,8 @@ def fit_ridge_line(log_mstar, log_sfr,
         m_high = m_low + bin_width
         mask = (
             (log_mstar >= m_low) & (log_mstar < m_high) &
-            np.isfinite(log_sfr)
+            np.isfinite(log_sfr) &
+            (log_sfr >= sfr_floor)          # ← exclude quenched tail
         )
         if mask.sum() < min_galaxies:
             continue
@@ -78,7 +82,8 @@ def fit_ridge_line(log_mstar, log_sfr,
     sfms_params, _ = curve_fit(
         lee2015_sfms,
         ridge_mass, ridge_sfr,
-        p0=[2.9, 0.2, 9.9]     # Tuntipong+2024 values as initial guess
+        p0=[2.9, 0.2, 9.9],
+        maxfev=10000                        # ← allow more iterations
     )
 
     return sfms_params, ridge_mass, ridge_sfr
