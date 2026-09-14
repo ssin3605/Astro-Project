@@ -30,17 +30,18 @@ determines the SFR source -
         backfilled with the SF-file SFR, which would reintroduce AGN/LINER
         contamination)
 
-GAP FLAGGED FOR YOUR ATTENTION: the old master_results.csv contained
-`5NN`, `5NN_err`, and `is_isolated` columns (5th-nearest-neighbour surface
-density / isolation flag). No script anywhere in the old repo computes
-these - they are only ever *read* (src/sf_ml_build.py, src/ml_data.py, the
-master notebooks). One notebook cell even patches a corrupted string value
-found in that column ('Falsea' for CATID 7969), which suggests it was
-hand-edited at some point. Per instruction 4 ("do not touch any values by
-hand"), this script does NOT fabricate or copy forward those columns - they
-are omitted from the new master CSV. If you have the script/notebook that
-originally produced 5NN/is_isolated, point 04 at it and this can be wired
-back in as a genuine pipeline stage.
+RESOLVED (2026-08-17): the old master_results.csv contained `5NN`,
+`5NN_err`, and `is_isolated` columns (5th-nearest-neighbour surface density
+/ isolation flag) that no script in the old repo ever computed - only ever
+*read* - and one notebook cell patched a corrupted value by hand
+('Falsea' for CATID 7969), suggesting the column had drifted out of any
+reproducible pipeline. Rather than reintroduce that unverified column,
+`5NN`/`5NN_err`/`5NN_flag` are now sourced fresh from
+`data/fits/surface_density.fits` (GAMA's own surface-density catalogue,
+previously unused anywhere in this pipeline - see CHANGELOG.md), and
+`is_isolated` is replaced by `group_status` (central/satellite/isolated/NaN),
+derived directly from Wang's `BCGCATAID` via `classify_group_status()`
+below - GAMA-only, since no Cluster file has a BCGCATAID equivalent.
 
 Output: outputs/csv/master_<YYYY-MM-DD>.csv (dated per run, never overwritten)
 
@@ -64,8 +65,9 @@ from astropy.cosmology import FlatLambdaCDM
 PIPELINE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PIPELINE_ROOT))
 
-from src.utils.units import to_log_sfr  # noqa: E402
-from src.utils.wang import load_all_wang_files, wang_membership_sets  # noqa: E402
+from src.utils.units import to_log_sfr  
+from src.utils.wang import load_all_wang_files, wang_membership_sets  
+from src.utils.wang_quality_cuts import CUT_COLUMNS, apply_quality_cuts  
 
 CSV_DIR = PIPELINE_ROOT / "outputs" / "csv"
 CONCENTRATION_CSV = CSV_DIR / "concentration.csv"
@@ -75,6 +77,7 @@ SMOOTHNESS_CSV = CSV_DIR / "smoothness.csv"
 
 GAMA_MORPH_FITS = PIPELINE_ROOT / "data" / "catalogues" / "gama_morphology.fits"
 GAMA_PAIRS_FITS = PIPELINE_ROOT / "data" / "catalogues" / "gama_pairs.fits"
+SURFACE_DENSITY_FITS = PIPELINE_ROOT / "data" / "catalogues" / "surface_density.fits"
 
 OUT_CSV = CSV_DIR / f"master_{date.today().isoformat()}.csv"
 
@@ -117,6 +120,27 @@ def arcsec_to_kpc(sep_arcsec: pd.Series, redshift: pd.Series) -> pd.Series:
     return pd.Series(list(map(convert_row, zip(sep_arcsec, redshift))), index=sep_arcsec.index)
 
 
+def classify_group_status(bcgcataid: pd.Series, catid: pd.Series) -> pd.Series:
+    """BCGCATAID == CATID -> central; BCGCATAID == 0 -> isolated; anything
+    else non-null -> satellite. GAMA-only - BCGCATAID has no Cluster
+    equivalent anywhere in Wang's SAMI_CIndex_data, so Cluster galaxies (and
+    any GAMA galaxy Wang has no BCGCATAID for) get NaN, not a guessed
+    default - "undetermined" is the honest answer, not "isolated".
+
+    Built with explicit object-dtype assignment rather than np.select/
+    np.where: mixing string choices with a np.nan default there lets numpy's
+    dtype promotion pick a fixed-width unicode dtype, which silently
+    stringifies the nan into the literal text "nan" - .notna() then wrongly
+    returns True for it. Only survives unnoticed because pandas' CSV writer/
+    reader round-trip happens to treat bare "nan" as a missing value again
+    on read - anyone using the in-memory frame directly would get it wrong."""
+    status = pd.Series(np.nan, index=catid.index, dtype=object)
+    status[bcgcataid.notna()] = "satellite"
+    status[bcgcataid == 0] = "isolated"
+    status[bcgcataid == catid] = "central"
+    return status
+
+
 def make_dataset_tag(row) -> str:
     """Human-readable provenance tag. Simplified from the old AR2022-aware
     version now that Wang concentration.csv is the only metadata anchor."""
@@ -151,7 +175,15 @@ def main():
     print(f"  composite_SF : {len(membership['composite_sf_ids'])}")
 
     print("\n" + "=" * 60)
-    print("STEP 3 - Building CATID universe (Wang concentration + G/A/S only - no AR2022)")
+    print("STEP 3 - Applying Wang (2022) Full_sam quality/purity cuts")
+    print("=" * 60)
+    conc = apply_quality_cuts(conc, membership)
+    for col in CUT_COLUMNS:
+        print(f"  {col:<18}: {int(conc[col].sum())} pass")
+    print(f"  {'in_full_sam':<18}: {int(conc['in_full_sam'].sum())} pass (all six cuts)")
+
+    print("\n" + "=" * 60)
+    print("STEP 4 - Building CATID universe (Wang concentration + G/A/S only - no AR2022)")
     print("=" * 60)
     all_catids = pd.DataFrame({
         "CATID": pd.concat([conc["CATID"], gini["CATID"], asym["CATID"], smooth["CATID"]])
@@ -161,7 +193,7 @@ def main():
     print(f"  Total unique CATIDs : {len(all_catids)}")
 
     print("\n" + "=" * 60)
-    print("STEP 4 - Merging metric tables")
+    print("STEP 5 - Merging metric tables")
     print("=" * 60)
     master = all_catids.copy()
 
@@ -169,11 +201,17 @@ def main():
         "CATID", "CIndex", "re", "re_com", "ellip", "z", "g_i", "Mstar", "galclass",
         "galclass_exclude", "environment", "seeing", "seeing_re", "source_file",
         "conflict_flag", "SFR", "SFR_n2ha_s", "BCGCATAID", "MassA_1",
+        *CUT_COLUMNS, "in_full_sam",
     ]
     conc_present = [c for c in conc_cols if c in conc.columns]
     master = master.merge(conc[conc_present], on="CATID", how="left")
     master["in_C"] = master["CATID"].isin(set(conc["CATID"]))
     master = master.rename(columns={"CIndex": "C"})
+
+    # No concentration entry -> never evaluated against Wang's cuts -> not in Full_sam.
+    # Individual cut_* columns are left as NaN for these rows (honestly "not evaluated",
+    # not "failed") - only the overall in_full_sam flag needs a hard boolean for filtering.
+    master["in_full_sam"] = master["in_full_sam"].fillna(False).astype(bool)
 
     master = master.merge(gini[["CATID", "gini_halpha"]], on="CATID", how="left")
     master = master.merge(asym[["CATID", "A_min"]], on="CATID", how="left")
@@ -190,7 +228,7 @@ def main():
     print(f"  in_C : {master['in_C'].sum()}   in_G : {master['in_G'].sum()}   in_A : {master['in_A'].sum()}   in_S : {master['in_S'].sum()}")
 
     print("\n" + "=" * 60)
-    print("STEP 5 - Assigning spectral_class from Wang TXT membership")
+    print("STEP 6 - Assigning spectral_class from Wang TXT membership")
     print("=" * 60)
 
     def assign_spectral_class(catid):
@@ -206,7 +244,7 @@ def main():
     print(f"  NaN (not in any Wang TXT) : {master['spectral_class'].isna().sum()}")
 
     print("\n" + "=" * 60)
-    print("STEP 6 - Resolving SFR (Wang-only; no AR2022)")
+    print("STEP 7 - Resolving SFR (Wang-only; no AR2022)")
     print(f'  Composite fallback policy: COMPOSITE_SFR_FALLBACK = "{COMPOSITE_SFR_FALLBACK}"')
     print("=" * 60)
 
@@ -233,7 +271,7 @@ def main():
     print(pd.Series(sfr_flags).value_counts(dropna=False).to_string())
 
     print("\n" + "=" * 60)
-    print("STEP 7 - Computing log_SFR / log_Mstar / sSFR / log_sSFR")
+    print("STEP 8 - Computing log_SFR / log_Mstar / sSFR / log_sSFR")
     print("=" * 60)
     log_sfr_series, sfr_already_log = to_log_sfr(master["SFR_raw"])
     if sfr_already_log:
@@ -261,7 +299,7 @@ def main():
             master["log_MassA_1"] = np.log10(master["MassA_1"].replace(0, np.nan))
 
     print("\n" + "=" * 60)
-    print("STEP 8 - Joining GAMA morphology + pairs (kept - environment metadata, not an SFR/Mstar source)")
+    print("STEP 9 - Joining GAMA morphology + pairs (kept - environment metadata, not an SFR/Mstar source)")
     print("=" * 60)
 
     if GAMA_MORPH_FITS.exists():
@@ -292,22 +330,46 @@ def main():
         confirmed["SEP_KPC"] = arcsec_to_kpc(confirmed["SEPPROJANG"], confirmed["z_gal"])
 
         nearest = confirmed.sort_values("SEP_KPC").groupby("CATID", as_index=False).first()[["CATID", "SEP_KPC"]]
+        nearest = nearest.rename(columns={"SEP_KPC": "gama_pair_sep_kpc"})
         master = master.merge(nearest, on="CATID", how="left")
-        master["gama_in_pairs"] = master["SEP_KPC"].notna()
-        master["gama_close_pair_100kpc"] = master["SEP_KPC"] <= PAIR_SEP_100_KPC
-        master["gama_close_pair_50kpc"] = master["SEP_KPC"] <= PAIR_SEP_50_KPC
-        master = master.drop(columns=["SEP_KPC"])
+        master["gama_in_pairs"] = master["gama_pair_sep_kpc"].notna()
+        master["gama_close_pair_100kpc"] = master["gama_pair_sep_kpc"] <= PAIR_SEP_100_KPC
+        master["gama_close_pair_50kpc"] = master["gama_pair_sep_kpc"] <= PAIR_SEP_50_KPC
         print(f"  In GAMA pairs        : {master['gama_in_pairs'].sum()}")
         print(f"  Close pair < 100 kpc : {master['gama_close_pair_100kpc'].sum()}")
         print(f"  Close pair <  50 kpc : {master['gama_close_pair_50kpc'].sum()}")
     else:
         print(f"  WARNING: {GAMA_PAIRS_FITS} not found - skipping")
+        master["gama_pair_sep_kpc"] = np.nan
         master["gama_in_pairs"] = False
         master["gama_close_pair_100kpc"] = False
         master["gama_close_pair_50kpc"] = False
 
     print("\n" + "=" * 60)
-    print("STEP 9 - Dataset tags + final column order")
+    print("STEP 10 - Joining 5NN surface density (data/fits/surface_density.fits)")
+    print("=" * 60)
+
+    if SURFACE_DENSITY_FITS.exists():
+        sd = load_fits_as_df(SURFACE_DENSITY_FITS, "Surface Density")
+        sd_slim = sd[["CATID", "SURFACEDENSITY", "SURFACEDENSITY_ERR", "SURFACEDENSITYFLAG"]].rename(
+            columns={"SURFACEDENSITY": "5NN", "SURFACEDENSITY_ERR": "5NN_err", "SURFACEDENSITYFLAG": "5NN_flag"}
+        )
+        master = master.merge(sd_slim, on="CATID", how="left")
+        print(f"  5NN matched : {master['5NN'].notna().sum()}")
+    else:
+        print(f"  WARNING: {SURFACE_DENSITY_FITS} not found - skipping")
+        master["5NN"] = np.nan
+        master["5NN_err"] = np.nan
+        master["5NN_flag"] = np.nan
+
+    print("\n" + "=" * 60)
+    print("STEP 11 - Deriving group_status (central/satellite/isolated) from BCGCATAID")
+    print("=" * 60)
+    master["group_status"] = classify_group_status(master["BCGCATAID"], master["CATID"])
+    print(master["group_status"].value_counts(dropna=False).to_string())
+
+    print("\n" + "=" * 60)
+    print("STEP 12 - Dataset tags + final column order")
     print("=" * 60)
     master["dataset_tag"] = master.apply(make_dataset_tag, axis=1)
     print(master["dataset_tag"].value_counts().to_string())
@@ -319,9 +381,11 @@ def main():
         "re", "re_com", "ellip", "z",
         "Mstar", "log_Mstar", "SFR", "log_SFR", "sSFR", "log_sSFR", "sfr_flag",
         "seeing", "seeing_re", "source_file", "conflict_flag",
-        "BCGCATAID", "MassA_1", "log_MassA_1",
+        "BCGCATAID", "MassA_1", "log_MassA_1", "group_status",
         "gama_hubble_type", "gama_final_class",
-        "gama_in_pairs", "gama_close_pair_100kpc", "gama_close_pair_50kpc",
+        "gama_in_pairs", "gama_pair_sep_kpc", "gama_close_pair_100kpc", "gama_close_pair_50kpc",
+        "5NN", "5NN_err", "5NN_flag",
+        *CUT_COLUMNS, "in_full_sam",
     ]
     final_cols_present = [c for c in final_cols if c in master.columns]
     missing = [c for c in final_cols if c not in master.columns]
@@ -340,6 +404,9 @@ def main():
     print(f"  All 3 morph metrics    : {master_out[['G','A','S']].notna().all(axis=1).sum()}")
     print(f"  C present              : {master_out['C'].notna().sum()}")
     print(f"  SFR present            : {master_out['SFR'].notna().sum()}")
+    print(f"  in_full_sam            : {int(master_out['in_full_sam'].sum())}  (Wang 2022 Full_sam quality cuts, see wang_quality_cuts.py)")
+    print(f"  5NN present            : {master_out['5NN'].notna().sum()}")
+    print(f"  group_status present   : {master_out['group_status'].notna().sum()}  ({master_out['group_status'].value_counts(dropna=False).to_dict()})")
     print(f"  Written                : {OUT_CSV}")
 
 

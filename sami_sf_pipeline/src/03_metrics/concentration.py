@@ -63,8 +63,11 @@ COMPOSITE_CINDEX_COLS = [
     "CIndex_s2ha_l", "ha_EW_s_l", "SFR_s2ha_l",
 ]
 
-# Composite cluster file only
-CLUSTER_EXTRA_COLS = ["BCGCATAID", "MassA_1"]
+# GAMA-only (present in all four Wang GAMA files - both SF_GAMA and
+# Composite_GAMA - but absent from every Cluster file; there is no
+# BCGCATAID-equivalent anywhere in Wang's SAMI_CIndex_data for Cluster
+# galaxies).
+GAMA_BCG_COLS = ["BCGCATAID", "MassA_1"]
 
 META_COLS = ["spectral_class", "environment", "conflict_flag", "source_file"]
 
@@ -83,12 +86,12 @@ def build_concentration_table() -> pd.DataFrame:
     # NOTE (bug fix found during porting, not part of the original audit):
     # the old concentration_merging.py filtered all_classified down to
     # desired_cols *before* the SF/Composite split, but that filter omitted
-    # CLUSTER_EXTRA_COLS (BCGCATAID, MassA_1 - present in gamaout_com_v0.12.txt),
+    # GAMA_BCG_COLS (BCGCATAID, MassA_1 - present in gamaout_com_v0.12.txt),
     # so those two columns were silently dropped even though they exist in
     # the raw source data. concentration_results.csv (old repo) is missing
-    # them as a result. Including CLUSTER_EXTRA_COLS here is a genuine fix,
+    # them as a result. Including GAMA_BCG_COLS here is a genuine fix,
     # not a behaviour change to anything the audit reviewed.
-    desired_cols = SHARED_COLS + SF_EXTRA_COLS + COMPOSITE_CINDEX_COLS + CLUSTER_EXTRA_COLS + META_COLS
+    desired_cols = SHARED_COLS + SF_EXTRA_COLS + COMPOSITE_CINDEX_COLS + GAMA_BCG_COLS + META_COLS
     available_cols = [c for c in desired_cols if c in all_classified.columns]
     all_classified = all_classified[available_cols].copy()
 
@@ -105,8 +108,12 @@ def build_concentration_table() -> pd.DataFrame:
     print(f"  Unique CATIDs            : {all_classified['CATID'].nunique()}")
     print(f"  SF + Composite conflicts : {len(conflict_catids)}")
 
-    sf_cols = SHARED_COLS + SF_EXTRA_COLS
-    composite_cols = SHARED_COLS + COMPOSITE_CINDEX_COLS + CLUSTER_EXTRA_COLS
+    # GAMA_BCG_COLS is in both sf_cols and composite_cols now (bug fix - see
+    # note above): a pure_SF-only GAMA galaxy keeps its own BCGCATAID/MassA_1
+    # straight from the SF file, instead of only ever getting it via a
+    # Composite-file match.
+    sf_cols = SHARED_COLS + SF_EXTRA_COLS + GAMA_BCG_COLS
+    composite_cols = SHARED_COLS + COMPOSITE_CINDEX_COLS + GAMA_BCG_COLS
 
     sf_rows = all_classified[all_classified["spectral_class"] == "SF"].copy()
     com_rows = all_classified[all_classified["spectral_class"] == "Composite"].copy()
@@ -117,8 +124,17 @@ def build_concentration_table() -> pd.DataFrame:
     sf_rows = sf_rows[sf_keep].drop_duplicates(subset="CATID", keep="first")
     com_rows = com_rows[com_keep].drop_duplicates(subset="CATID", keep="first")
 
-    # SF rows are the base; composite CIndex columns are left-joined on where available.
+    # SF rows are the base; composite CIndex columns are left-joined on where
+    # available. GAMA_BCG_COLS now exists on both sides - coalesce rather than
+    # keep two near-duplicate columns (they're galaxy-level group properties,
+    # not spectral-class-dependent, so SF and Composite agree when both have
+    # a value; SF is preferred, Composite fills in where SF's was missing).
     merged = sf_rows.merge(com_rows, on="CATID", how="left", suffixes=("", "_com"))
+    for col in GAMA_BCG_COLS:
+        com_col = f"{col}_com"
+        if com_col in merged.columns:
+            merged[col] = merged[col].fillna(merged[com_col])
+            merged = merged.drop(columns=[com_col])
 
     # Galaxies that only appear in a composite file (no SF counterpart) are appended separately.
     composite_only_catids = set(com_rows["CATID"]) - set(sf_rows["CATID"])

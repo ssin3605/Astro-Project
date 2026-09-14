@@ -4,6 +4,112 @@ All entries describe the move from the old repo (`../` relative to this
 folder) to `sami_sf_pipeline/`. See `AUDIT_REPORT.md` for the original
 diagnostic findings this is based on.
 
+## [2026-08-17] Environment metrics added to master_<date>.csv
+
+Four new columns for plotting metrics against environment / feeding an ML
+dataset:
+
+- **`5NN`/`5NN_err`/`5NN_flag`** - GAMA 5th-nearest-neighbour surface
+  density, from `data/fits/surface_density.fits` (symlinked into
+  `data/catalogues/`, previously unused anywhere in this pipeline). Fills
+  the `5NN`/`5NN_err` gap flagged in `04_build_master_csv.py`'s docstring -
+  the old repo only ever read these columns, never computed them. Coverage:
+  2960/3031.
+- **`group_status`** (central/satellite/isolated) - derived from Wang's
+  `BCGCATAID`: `== CATID` -> central, `== 0` -> isolated, anything else
+  non-null -> satellite. GAMA-only (2080/3031) - no Cluster file has a
+  BCGCATAID equivalent, confirmed by checking all three raw Cluster txt
+  files; Cluster galaxies get NaN, not a guessed default.
+- **`gama_pair_sep_kpc`** - the nearest-confirmed-pair projected separation
+  already computed internally for the existing `gama_in_pairs`/
+  `gama_close_pair_*kpc` flags, previously computed then discarded - now
+  kept as its own column.
+- **Bar presence** - deliberately not added. `gama_morphology.fits`'s
+  `HUBBLE_TYPE` has barred (`SB*`) vs unbarred (`S*`) categories, but it's a
+  coarse type-range classifier with only 78% coverage of `final_sample.csv`
+  and no Cluster coverage. Decided to hold off for a dedicated bar
+  catalogue rather than ship an approximate proxy.
+
+**Bug fixed along the way:** `03_metrics/concentration.py` only carried
+`BCGCATAID`/`MassA_1` forward for galaxies matched to a *Composite* GAMA
+file, even though both columns exist in the SF_GAMA file too - a
+pure_SF-only GAMA galaxy was silently losing a value it actually had.
+Fixed (`GAMA_BCG_COLS` now read from both sf_cols and composite_cols,
+coalesced on merge); `concentration.csv` BCGCATAID coverage went 1003 ->
+2080.
+
+**Bug fixed while implementing `group_status`:** the first version built it
+with `np.select(..., default=np.where(...))` - mixing string choices with a
+`np.nan` default let numpy's dtype promotion pick a fixed-width unicode
+dtype, silently stringifying the missing values into the literal text
+`"nan"`. `.notna()` on the in-memory column then wrongly returned `True`
+for every row - only survived unnoticed one write/read cycle because
+pandas' CSV writer/reader round-trip happens to re-parse bare `nan` text
+back into a real missing value. Rebuilt with explicit object-dtype
+`pd.Series` + boolean-indexed assignment instead - no implicit dtype
+promotion, real `NaN` in memory as well as on disk.
+
+## [2026-08-17] Wang (2022) `Full_sam` quality/purity cuts added
+
+Found while building `notebooks/sample_summary.ipynb`: `concentration.csv`
+(2959 galaxies, this pipeline's copy of Wang's `SAMI_CIndex_data`) was
+being treated as an already-selected analysis sample. It isn't - it's
+Wang's BPT-classified *candidate* catalogue, before their published quality
+cuts. Their actual analysis sample, `Full_sam`, is 778 galaxies.
+
+**Added:** `src/utils/wang_quality_cuts.py` - six independent boolean
+`cut_*` columns (size `re<=15"`, inclination `ellip<=0.7`, seeing
+`seeing_re<0.75 & seeing<4"`, star-forming `EW(Ha)>=1A`, pure-AGN
+exclusion, sSFR `log(sSFR)>-11.25` using each galaxy's true pure_SF/
+composite_SF membership, not `concentration.csv`'s own `spectral_class`
+column - see below) plus an overall `in_full_sam` flag (AND of all six).
+`04_build_master_csv.py` now runs this as STEP 3 (right after loading Wang
+membership) and merges the seven new columns into `master_<date>.csv`
+alongside the existing `in_C`/`in_G`/`in_A`/`in_S` flags - non-destructive,
+no rows dropped, same pattern as everything else in that script. Metric
+scripts (`gini.py`/`asymmetry.py`/`smoothness.py`) are deliberately *not*
+gated by these cuts - they still compute G/A/S for every galaxy with a
+usable map; only sample-selection decisions read `in_full_sam`.
+
+**Validated against Wang's own published per-cut removal counts:** applied
+sequentially to `concentration.csv`, inclination removes exactly 307
+(paper: 307), seeing exactly 714 (paper: 714), and EW exactly 783 (paper:
+783). Size removes 70 here vs. the paper's 99 - the 29-galaxy gap exactly
+matches the difference between this pipeline's base population (2959) and
+Wang's (2988, the AR2022 catalogue - deliberately not reintroduced, per the
+"AR2022 dropped entirely" entry below; the user confirmed exact agreement
+with the paper's total sample size isn't required, only that the cut logic
+itself is right).
+
+**Bug caught while validating:** `concentration.csv`'s own `spectral_class`
+column is mislabeled - it's tagged per source file at load time (`"SF"` for
+every row merged from the SF files), not per-galaxy, so every row reads
+`"SF"` regardless of a galaxy's real Wang classification. The sSFR cut
+needs the real pure_SF/composite_SF distinction (same one
+`04_build_master_csv.py` already computes via `wang_membership_sets()` -
+pure_SF = in an SF file but not a Composite file; composite_SF = in both) to
+resolve which SFR column to read (`SFR` vs `SFR_n2ha_s`), matching Wang's
+own "correcting Ha for non star-formation contamination in non-pure_sf"
+wording. `wang_quality_cuts.py` derives this itself rather than trusting
+`concentration.csv`'s column.
+
+**Known gap - pure-AGN exclusion (`cut_not_pure_agn`):** Wang (2022)
+excludes 121 galaxies here, but the column/flag that identifies them in
+`SAMI_CIndex_data` hasn't been located yet. `galclass` is **not** it -
+confirmed it's a group-mass bin, not a spectral/AGN classification (an
+earlier guess, made before checking against the data, wrongly assumed
+`galclass==4` meant pure AGN - it's actually 545 galaxies, nowhere near
+121). `cut_not_pure_agn` is stubbed to pass every galaxy until the real
+source is found; `in_full_sam` is over-inclusive by however many pure-AGN
+galaxies remain in the meantime (currently 852 pass all six cuts, vs. the
+paper's 778 - consistent with the stub being one cut too permissive, not
+with anything else being wrong). Swap the stub for a real filter in
+`wang_quality_cuts.py` once the flag is found; nothing else needs to
+change.
+
+`notebooks/sample_summary.ipynb` now surfaces all six cuts (and the AGN
+caveat) as the final stage of its sample-tracking table.
+
 ## [2026-08-10] Fixed-scale flux map notebook added
 
 `notebooks/flux_map_fixed_scale.ipynb`: notebook version of `01_flux_map.py`

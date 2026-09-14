@@ -1,0 +1,17 @@
+Stage,Description,N
+Full SAMI Hα sample,Raw Hα datacube exists (data/raw/sami_dr3_Halpha_maps),3068
+Continuum-masked,Passed 02_continuum_mask.py (S/N >= 3 mask built),2340
+Classified by Wang (Cindex_data),In one of Wang et al.'s four SAMI_CIndex_data files,2959
+Concentration (C) computed,in_C in master_<date>.csv,2959
+Gini (G) computed,in_G in master_<date>.csv,2340
+Asymmetry (A) computed,in_A in master_<date>.csv,2332
+Smoothness (S) computed,in_S in master_<date>.csv,2259
+All four metrics (C+G+A+S),in_C & in_G & in_A & in_S,2259
+Final master catalogue,Union of C/G/A/S CATIDs (master_2026-08-17.csv),3031
+"  → size (re <= 15"")",cut_size,2889
+  → inclination (ellip <= 0.7),cut_inclination,2639
+  → seeing,cut_seeing,2218
+  → star-forming (EW Hα >= 1Å),cut_star_forming,1747
+  → not pure AGN,"cut_not_pure_agn (STUBBED - passes all, see wang_quality_cuts.py)",2414
+  → sSFR (log(sSFR) > -11.25),cut_ssfr,1494
+Wang (2022) Full_sam (all 6 cuts),"in_full_sam - AGN cut pending, see note above",837
