@@ -1,0 +1,11 @@
+column,label,n_full,rho_full,p_full,rho_matched,p_matched,n_matched,partial_rho_n_res,delta_raw_vs_partial,sign_flip_matched,sign_flip_partial,loses_significance_matched
+log_SFR,log SFR,705,-0.5648,1.1961583037336424e-60,-0.6306,1.880589639189027e-31,271,-0.6694,0.1046,False,False,False
+log_Mstar,Stellar mass (log M*),705,-0.4497,2.1278592820419863e-36,-0.5695,1.0671487074310975e-24,271,-0.6079,0.1582,False,False,False
+delta_ms,SFMS offset (delta_ms),705,-0.4263,1.683393443763707e-32,-0.4087,2.477820417221032e-12,271,-0.4241,-0.0022,False,False,False
+z,Redshift (sanity/negative control - not a physical driver of S),705,-0.3268,5.192142331716231e-19,-0.3052,2.9946271434186997e-07,271,-0.3217,-0.0051,False,False,False
+Dvoid,Distance to void (cosmic web),313,-0.1934,0.0005793953779463512,-0.2524,0.005223333388198467,121,-0.1933,-0.0001,False,False,False
+log_sSFR,log sSFR,705,-0.167,8.298356878896012e-06,-0.0695,0.25422208580066263,271,-0.0767,-0.0903,False,False,True
+ellip,Ellipticity (inclination proxy),705,0.1551,3.521977682630171e-05,0.1079,0.07611603448280777,271,0.1593,-0.0042,False,False,True
+Dnode,Distance to node (cosmic web),313,-0.0705,0.2135516236169483,-0.0702,0.44432350814202254,121,-0.1406,0.0701,False,False,False
+Dfil,Distance to filament (cosmic web),313,0.0543,0.3383444566362026,0.0367,0.6893997282189458,121,-0.1038,0.1581,False,True,False
+5NN,5th-nearest-neighbour density,704,0.0496,0.1886752415015363,0.0678,0.26577214978312336,271,0.0706,-0.021,False,False,False

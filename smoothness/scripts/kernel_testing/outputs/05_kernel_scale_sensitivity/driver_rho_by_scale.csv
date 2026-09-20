@@ -1,0 +1,71 @@
+kernel_scale,column,label,rho,p
+0.1,log_Mstar,Stellar mass (log M*),-0.4035,5.489480208271999e-29
+0.1,delta_ms,SFMS offset (delta_ms),-0.4039,4.8394946733261084e-29
+0.1,log_SFR,log SFR,-0.5168,2.1618398514668852e-49
+0.1,log_sSFR,log sSFR,-0.1675,7.799487972464425e-06
+0.1,5NN,5th-nearest-neighbour density,0.0194,0.6080802742865369
+0.1,Dfil,Distance to filament (cosmic web),0.0919,0.10448222277586605
+0.1,Dnode,Distance to node (cosmic web),-0.043,0.44808052867379156
+0.1,Dvoid,Distance to void (cosmic web),-0.1228,0.029795245011499286
+0.1,ellip,Ellipticity (inclination proxy),0.024,0.5238868836312919
+0.1,z,Redshift (sanity/negative control - not a physical driver of S),-0.2612,1.861544125519464e-12
+0.2,log_Mstar,Stellar mass (log M*),-0.4306,3.436342135259619e-33
+0.2,delta_ms,SFMS offset (delta_ms),-0.4157,7.89345691967481e-31
+0.2,log_SFR,log SFR,-0.5461,4.833043102015591e-56
+0.2,log_sSFR,log sSFR,-0.1688,6.585473419813347e-06
+0.2,5NN,5th-nearest-neighbour density,0.0331,0.3803405056601695
+0.2,Dfil,Distance to filament (cosmic web),0.0692,0.2218222252116498
+0.2,Dnode,Distance to node (cosmic web),-0.0599,0.2903608005662609
+0.2,Dvoid,Distance to void (cosmic web),-0.1478,0.008842342563490743
+0.2,ellip,Ellipticity (inclination proxy),0.0744,0.0482191729367839
+0.2,z,Redshift (sanity/negative control - not a physical driver of S),-0.2991,4.951218757195438e-16
+0.25,log_Mstar,Stellar mass (log M*),-0.4348,7.073872062785956e-34
+0.25,delta_ms,SFMS offset (delta_ms),-0.4188,2.5733436989297603e-31
+0.25,log_SFR,log SFR,-0.5511,3.0608447824925216e-57
+0.25,log_sSFR,log sSFR,-0.1697,5.90257156589096e-06
+0.25,5NN,5th-nearest-neighbour density,0.0395,0.29544316153775163
+0.25,Dfil,Distance to filament (cosmic web),0.061,0.28222101339677547
+0.25,Dnode,Distance to node (cosmic web),-0.0662,0.24314709210829918
+0.25,Dvoid,Distance to void (cosmic web),-0.1617,0.00413601069976777
+0.25,ellip,Ellipticity (inclination proxy),0.104,0.005725799791502074
+0.25,z,Redshift (sanity/negative control - not a physical driver of S),-0.3098,3.7707149565086576e-17
+0.3,log_Mstar,Stellar mass (log M*),-0.4419,4.5488524337315065e-35
+0.3,delta_ms,SFMS offset (delta_ms),-0.4227,6.314410115748009e-32
+0.3,log_SFR,log SFR,-0.5579,6.280165426140796e-59
+0.3,log_sSFR,log sSFR,-0.1686,6.733922971238514e-06
+0.3,5NN,5th-nearest-neighbour density,0.0449,0.23439695385994644
+0.3,Dfil,Distance to filament (cosmic web),0.0556,0.3270108433447867
+0.3,Dnode,Distance to node (cosmic web),-0.0705,0.21351340771747568
+0.3,Dvoid,Distance to void (cosmic web),-0.1781,0.0015583380355797512
+0.3,ellip,Ellipticity (inclination proxy),0.1315,0.00046247467595837607
+0.3,z,Redshift (sanity/negative control - not a physical driver of S),-0.3193,3.570251005628164e-18
+0.35,log_Mstar,Stellar mass (log M*),-0.4497,2.1278592820419863e-36
+0.35,delta_ms,SFMS offset (delta_ms),-0.4263,1.683393443763707e-32
+0.35,log_SFR,log SFR,-0.5648,1.1961583037336424e-60
+0.35,log_sSFR,log sSFR,-0.167,8.298356878896012e-06
+0.35,5NN,5th-nearest-neighbour density,0.0496,0.1886752415015363
+0.35,Dfil,Distance to filament (cosmic web),0.0543,0.3383444566362026
+0.35,Dnode,Distance to node (cosmic web),-0.0705,0.2135516236169483
+0.35,Dvoid,Distance to void (cosmic web),-0.1934,0.0005793953779463512
+0.35,ellip,Ellipticity (inclination proxy),0.1551,3.521977682630171e-05
+0.35,z,Redshift (sanity/negative control - not a physical driver of S),-0.3268,5.192142331716231e-19
+0.4,log_Mstar,Stellar mass (log M*),-0.4569,1.1623240782097465e-37
+0.4,delta_ms,SFMS offset (delta_ms),-0.4292,5.692339007822912e-33
+0.4,log_SFR,log SFR,-0.571,3.0646097360249035e-62
+0.4,log_sSFR,log sSFR,-0.165,1.0662558411400096e-05
+0.4,5NN,5th-nearest-neighbour density,0.0528,0.16194982949128134
+0.4,Dfil,Distance to filament (cosmic web),0.0561,0.322551644652067
+0.4,Dnode,Distance to node (cosmic web),-0.0694,0.221056063380212
+0.4,Dvoid,Distance to void (cosmic web),-0.2036,0.00028840355586834805
+0.4,ellip,Ellipticity (inclination proxy),0.1738,3.4629478232339584e-06
+0.4,z,Redshift (sanity/negative control - not a physical driver of S),-0.3318,1.4026574380295002e-19
+0.5,log_Mstar,Stellar mass (log M*),-0.4687,8.737749516018872e-40
+0.5,delta_ms,SFMS offset (delta_ms),-0.4353,5.7512002215177675e-34
+0.5,log_SFR,log SFR,-0.5815,5.054345098760383e-65
+0.5,log_sSFR,log sSFR,-0.163,1.362946272324732e-05
+0.5,5NN,5th-nearest-neighbour density,0.058,0.12408358752393811
+0.5,Dfil,Distance to filament (cosmic web),0.0569,0.31576545542903767
+0.5,Dnode,Distance to node (cosmic web),-0.0689,0.22433785590376373
+0.5,Dvoid,Distance to void (cosmic web),-0.219,9.344496962527027e-05
+0.5,ellip,Ellipticity (inclination proxy),0.1993,9.496378900139958e-08
+0.5,z,Redshift (sanity/negative control - not a physical driver of S),-0.338,2.6518838792499725e-20

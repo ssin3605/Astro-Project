@@ -215,8 +215,30 @@ def main():
 
     master = master.merge(gini[["CATID", "gini_halpha"]], on="CATID", how="left")
     master = master.merge(asym[["CATID", "A_min"]], on="CATID", how="left")
-    master = master.merge(smooth[["CATID", "S"]], on="CATID", how="left")
+
+    # re_used/re_source: the SF-preferred/composite-fallback-resolved,
+    # unphysical-excluded r_e that 03_metrics/smoothness.py actually used to
+    # size its Gaussian kernel - NOT the same as the raw, unresolved
+    # concentration.csv `re` merged in above. Kept alongside `re`/`re_com`
+    # (not replacing them) so ML work can choose which r_e definition to use.
+    # B_S/S_no_B_S_sub merged in too, conditionally: present once
+    # 03_metrics/smoothness.py has been rerun with the background-smoothness
+    # correction (see kernel_testing/08_background_subtraction_test.py); this
+    # merge is a no-op until then, so nothing breaks either way.
+    smooth_cols = ["CATID", "S", "B_S", "S_no_B_S_sub", "re_used", "re_source"]
+    smooth_present = [c for c in smooth_cols if c in smooth.columns]
+    master = master.merge(smooth[smooth_present], on="CATID", how="left")
     master = master.rename(columns={"gini_halpha": "G", "A_min": "A"})
+
+    # re_kpc / n_res: separate r_e's genuine physical-size information from
+    # its resolution/kernel-geometry information, so ML models can be given
+    # each independently rather than the arcsec value that conflates both
+    # (see the kernel_testing/ investigation and ML_HANDOFF.md for why).
+    # Built from re_used (see above), the same COSMO used elsewhere in this
+    # script (e.g. gama_pair_sep_kpc below).
+    kpc_per_arcsec = COSMO.kpc_proper_per_arcmin(master["z"].to_numpy(dtype=float)).value / 60.0
+    master["re_kpc"] = master["re_used"] * kpc_per_arcsec
+    master["n_res"] = master["re_used"] / master["seeing"]
 
     master["in_G"] = master["CATID"].isin(set(gini["CATID"]))
     master["in_A"] = master["CATID"].isin(set(asym["CATID"]))
@@ -378,9 +400,10 @@ def main():
         "CATID", "dataset_tag", "in_C", "in_G", "in_A", "in_S", "n_metrics",
         "C", "G", "A", "S",
         "spectral_class", "environment", "galclass", "galclass_exclude",
-        "re", "re_com", "ellip", "z",
+        "re", "re_com", "re_used", "re_source", "re_kpc", "n_res", "ellip", "z",
         "Mstar", "log_Mstar", "SFR", "log_SFR", "sSFR", "log_sSFR", "sfr_flag",
         "seeing", "seeing_re", "source_file", "conflict_flag",
+        "B_S", "S_no_B_S_sub",
         "BCGCATAID", "MassA_1", "log_MassA_1", "group_status",
         "gama_hubble_type", "gama_final_class",
         "gama_in_pairs", "gama_pair_sep_kpc", "gama_close_pair_100kpc", "gama_close_pair_50kpc",
