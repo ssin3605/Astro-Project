@@ -214,7 +214,16 @@ def main():
     master["in_full_sam"] = master["in_full_sam"].fillna(False).astype(bool)
 
     master = master.merge(gini[["CATID", "gini_halpha"]], on="CATID", how="left")
-    master = master.merge(asym[["CATID", "A_min"]], on="CATID", how="left")
+
+    # A/A_BS/A_no_sub merged in too, conditionally: present once
+    # 03_metrics/asymmetry.py has been rerun with the background-asymmetry
+    # correction (see asymmetry/scripts/kernel_testing/
+    # 03_background_subtraction_test.py); falls back to the old A_min-only
+    # merge otherwise, so nothing breaks either way. Mirrors the smooth_cols
+    # pattern below for S/B_S.
+    asym_cols = ["CATID", "A_min", "A", "A_BS", "A_no_sub"]
+    asym_present = [c for c in asym_cols if c in asym.columns]
+    master = master.merge(asym[asym_present], on="CATID", how="left")
 
     # re_used/re_source: the SF-preferred/composite-fallback-resolved,
     # unphysical-excluded r_e that 03_metrics/smoothness.py actually used to
@@ -404,6 +413,7 @@ def main():
         "Mstar", "log_Mstar", "SFR", "log_SFR", "sSFR", "log_sSFR", "sfr_flag",
         "seeing", "seeing_re", "source_file", "conflict_flag",
         "B_S", "S_no_B_S_sub",
+        "A_BS", "A_no_sub",
         "BCGCATAID", "MassA_1", "log_MassA_1", "group_status",
         "gama_hubble_type", "gama_final_class",
         "gama_in_pairs", "gama_pair_sep_kpc", "gama_close_pair_100kpc", "gama_close_pair_50kpc",

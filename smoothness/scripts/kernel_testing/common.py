@@ -142,8 +142,13 @@ def load_full_sample() -> pd.DataFrame:
     master["CATID"] = master["CATID"].astype(int)
     smooth["CATID"] = smooth["CATID"].astype(int)
 
+    # master_final.csv has since grown its own re_used/re_source columns
+    # (see ML_HANDOFF.md) - only pull in whichever of these smoothness.csv
+    # columns master doesn't already carry, so this doesn't collide/suffix
+    # instead of silently preferring one source over the other.
     keep = ["CATID", "re_used", "re_source", "sigma_arcsec", "sigma_px", "kernel_scale"]
-    df = master.merge(smooth[keep], on="CATID", how="inner")
+    to_merge = ["CATID"] + [col for col in keep[1:] if col not in master.columns]
+    df = master.merge(smooth[to_merge], on="CATID", how="inner")
 
     df["kpc_per_as"] = kpc_per_arcsec(df["z"].values)
     df["re_kpc"] = df["re_used"] * df["kpc_per_as"]
