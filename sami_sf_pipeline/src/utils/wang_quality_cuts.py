@@ -10,7 +10,7 @@ paper's reported Full_sam (778).
 Cuts, in the order Wang applies them (order doesn't change any individual
 galaxy's pass/fail on any one cut - each criterion only reads that galaxy's
 own columns - but does change the "N removed at this step" bookkeeping if
-you report cuts sequentially, e.g. in notebooks/sample_summary.ipynb):
+you report cuts sequentially, e.g. in notebooks/sample_summary.py):
 
     1. Size       : re <= 15 arcsec
     2. Inclination : ellip <= 0.7

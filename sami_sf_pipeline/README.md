@@ -173,8 +173,10 @@ threshold was validated against the paper - all six cuts, including
 pure-AGN exclusion (`galclass == 4`), now reproduce Wang's published
 per-cut removal counts exactly against this pipeline's base population.
 
-`notebooks/sample_summary.ipynb` tracks sample size through every pipeline
-stage, ending with this six-cut breakdown.
+`notebooks/sample_summary.py` builds the thesis sample table: raw SAMI DR3
+maps -> Wang classification -> the six cuts in order -> clean sample, plus
+survey/spectral-class split, valid-metric counts and environment coverage.
+Writes `outputs/csv/sample_summary_<date>.csv`.
 
 ## Environment metrics
 
