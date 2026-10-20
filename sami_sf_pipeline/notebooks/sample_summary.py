@@ -115,7 +115,7 @@ def main() -> None:
             print(f"\n{section}")
             print(block.drop(columns="section").to_string(index=False))
 
-    out_path = CSV_DIR / f"sample_summary_{date.today().isoformat()}.csv"
+    out_path = CSV_DIR / f"sample_summary.csv"
     summary.to_csv(out_path, index=False)
     print(f"\nWritten: {out_path.relative_to(PIPELINE_ROOT)}")
 
