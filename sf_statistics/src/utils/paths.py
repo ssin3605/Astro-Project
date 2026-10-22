@@ -58,3 +58,12 @@ CLUMPINESS_CSV = CH3_CSV_DIR / "clumpiness.csv"
 MASTER_CSV = PIPELINE_DIR / "master.csv"
 SFMS_FIT_PARAMS_CSV = PIPELINE_DIR / "sfms_fit_params.csv"
 SFMS_RIDGE_POINTS_CSV = PIPELINE_DIR / "sfms_ridge_points.csv"
+
+# Chapter 4 (ML analysis, ml/ at the repo root). ml/src/prepare_ml_data.py
+# trims master.csv to the columns the ML notebooks use.
+CH4_DIR = OUTPUTS_DIR / "ch4"
+ML_DATA_CSV = CH4_DIR / "csv" / "ml_data.csv"
+ML_IMPORTANCES_DIR = CH4_DIR / "importances"       # importance + performance CSVs for the thesis figures
+ML_MODEL_OUTPUTS_DIR = CH4_DIR / "model_outputs"   # per-notebook extras (permutation tests, diagnostic plots)
+ML_PREDICTIONS_DIR = CH4_DIR / "predictions"       # out-of-fold predictions for the actual-vs-predicted figures
+CH4_FIGURES_DIR = CH4_DIR / "figures"

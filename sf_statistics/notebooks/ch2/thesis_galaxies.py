@@ -22,10 +22,12 @@ not a plot decoration.
 
 Usage
 -----
-    python notebooks/thesis_galaxies.py
-    python notebooks/thesis_galaxies.py --show
+    python sf_statistics/notebooks/ch2/thesis_galaxies.py
+    python sf_statistics/notebooks/ch2/thesis_galaxies.py --show
 
-Output: outputs/figures/thesis_galaxy_comparison.pdf and .png
+Input : data/optical/optical_{above,on,below}_ms.png
+        data/fits/sami_dr3_Halpha_maps/<CATID>_<IFU>_Halpha_default_1-comp.fits
+Output: outputs/ch2/figures/thesis_galaxy_comparison.pdf and .png
 """
 
 from __future__ import annotations
@@ -37,6 +39,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import pandas as pd
 from PIL import Image
 from scipy import ndimage
 
@@ -46,9 +49,9 @@ sys.path.insert(0, str(PIPELINE_ROOT))
 from src.utils.io import read_sami_halpha_layers  # noqa: E402
 from src.utils.plotting import plot_map  # noqa: E402
 from src.utils.halpha_map import BACKGROUND_COLOR, build_re_ellipse, find_halpha_fits  # noqa: E402
-from src.utils.paths import OPTICAL_DIR  # noqa: E402
+from src.utils.paths import MASTER_CSV, OPTICAL_DIR, OUTPUTS_DIR  # noqa: E402
 
-FIGURE_DIR = PIPELINE_ROOT / "outputs" / "figures"
+FIGURE_DIR = OUTPUTS_DIR / "ch2" / "figures"
 OPTICAL_IMAGES = {
     "above": OPTICAL_DIR / "optical_above_ms.png",
     "on":    OPTICAL_DIR / "optical_on_ms.png",
@@ -56,15 +59,27 @@ OPTICAL_IMAGES = {
 }
 
 # Order matches the SFMS position, left to right
+# delta_ms for each galaxy is read from master.csv (added by 05_sfms.py)
 GALAXIES = [
-    {"key": "above", "catid": 77967,  "label": "Above MS", "delta_ms": "+1.29"},
-    {"key": "on",    "catid": 14812,  "label": "On MS",    "delta_ms": "+0.05"},
-    {"key": "below", "catid": 107528, "label": "Below MS", "delta_ms": "−4.19"},
+    {"key": "above", "catid": 77967,  "label": "Above MS"},
+    {"key": "on",    "catid": 14812,  "label": "On MS"},
+    {"key": "below", "catid": 611002, "label": "Below MS"},
 ]
 
 HALPHA_LAYER = "sum"
 
 OUT_STEM = FIGURE_DIR / "thesis_galaxy_comparison"
+FLUX_LABEL = r"H$\alpha$ flux [$10^{-16}$ erg s$^{-1}$ cm$^{-2}$ spaxel$^{-1}$]"
+
+
+def load_delta_ms(catids: list[int]) -> dict[int, float]:
+    """Return {CATID: delta_ms} from master.csv for the given galaxies."""
+    master = pd.read_csv(MASTER_CSV, usecols=["CATID", "delta_ms"])
+    lookup = master.set_index("CATID")["delta_ms"]
+    missing = [c for c in catids if c not in lookup.index or pd.isna(lookup[c])]
+    if missing:
+        raise KeyError(f"No delta_ms in {MASTER_CSV} for CATID(s) {missing}. Run 05_sfms.py first.")
+    return {c: float(lookup[c]) for c in catids}
 
 
 def crop_axes_margin(img: np.ndarray) -> np.ndarray:
@@ -87,7 +102,7 @@ def crop_axes_margin(img: np.ndarray) -> np.ndarray:
     return img[ys.min(): ys.max() + 1, xs.min(): xs.max() + 1]
 
 
-def plot_optical_panel(ax, img_path: Path, catid: int):
+def plot_optical_panel(ax, img_path: Path, catid: int, delta_ms: float, label: str):
     img = np.array(Image.open(img_path).convert("RGB"))
     cropped = crop_axes_margin(img)
     ax.imshow(cropped, origin="upper")
@@ -95,10 +110,9 @@ def plot_optical_panel(ax, img_path: Path, catid: int):
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(False)
-    ax.set_title(f"CATID {catid}", fontsize=10, pad=4)
+    ax.set_title(f"CATID {catid}\n{label} ($\\Delta$ms = {delta_ms:+.2f})", fontsize=9, pad=4)
 
-
-def plot_halpha_panel(ax, catid: int, delta_ms: str, label: str):
+def plot_halpha_panel(ax, catid: int):
     fits_path = find_halpha_fits(catid)
     flux_layers, err_layers, header, meta = read_sami_halpha_layers(str(fits_path))
     flux_map = flux_layers[HALPHA_LAYER]
@@ -112,24 +126,27 @@ def plot_halpha_panel(ax, catid: int, delta_ms: str, label: str):
         ellipse=ellipse,
     )
     cbar = ax.figure.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    cbar.set_label("Flux", fontsize=8)
+    if catid == GALAXIES[-1]["catid"]:
+        cbar.set_label(f"Hα Flux", fontsize=9)
     cbar.ax.tick_params(labelsize=7)
 
-    ax.set_title(f"{label} ($\\Delta$ms = {delta_ms})", fontsize=9, pad=4)
-    ax.set_xlabel("X pixel", fontsize=8)
-    ax.tick_params(labelsize=7)
+    ax.set_xlim(3, 48); ax.set_ylim(3, 48)
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_xlabel(""); ax.set_ylabel("")
 
 
 def build_figure():
-    fig = plt.figure(figsize=(14, 9))
-    gs = gridspec.GridSpec(2, 3, figure=fig, hspace=0.15, wspace=0.35)
+    fig = plt.figure(figsize=(7, 4.3))
+    gs = gridspec.GridSpec(2, 3, figure=fig, hspace=0.08, wspace=0.25)
 
     axes_opt = [fig.add_subplot(gs[0, i]) for i in range(3)]
     axes_ha = [fig.add_subplot(gs[1, i]) for i in range(3)]
 
+    delta_ms = load_delta_ms([gal["catid"] for gal in GALAXIES])
     for i, gal in enumerate(GALAXIES):
-        plot_optical_panel(axes_opt[i], OPTICAL_IMAGES[gal["key"]], gal["catid"])
-        plot_halpha_panel(axes_ha[i], gal["catid"], gal["delta_ms"], gal["label"])
+        plot_optical_panel(axes_opt[i], OPTICAL_IMAGES[gal["key"]], gal["catid"],
+                   delta_ms[gal["catid"]], gal["label"])
+        plot_halpha_panel(axes_ha[i], gal["catid"])
 
     axes_opt[0].set_ylabel("Optical", fontsize=10, fontweight="bold", labelpad=8)
     axes_ha[0].set_ylabel("H$\\alpha$ flux", fontsize=10, fontweight="bold")
