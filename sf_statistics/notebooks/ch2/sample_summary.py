@@ -11,10 +11,10 @@ A metric counts as valid only when it has an actual (finite) value - an
 in_<metric> flag on its own isn't enough.
 
 Read-only: reads outputs/pipeline/master.csv and the raw map filenames, and writes
-outputs/csv/sample_summary.csv.
+outputs/ch2/csv/sample_summary.csv.
 
-Run from sami_sf_pipeline/:
-    python notebooks/sample_summary.py
+Run from sf_statistics/:
+    python notebooks/ch2/sample_summary.py
 """
 
 import re
@@ -27,8 +27,7 @@ import pandas as pd
 
 PIPELINE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PIPELINE_ROOT))
-from src.utils.paths import MASTER_CSV, RAW_HALPHA_DIR  # noqa: E402
-CSV_DIR = PIPELINE_ROOT / "outputs" / "csv"
+from src.utils.paths import CH2_CSV_DIR, MASTER_CSV, RAW_HALPHA_DIR, REPO_ROOT  # noqa: E402
 
 # Wang (2022) cuts, in the order the paper applies them.
 CUTS = [
@@ -116,9 +115,10 @@ def main() -> None:
             print(f"\n{section}")
             print(block.drop(columns="section").to_string(index=False))
 
-    out_path = CSV_DIR / f"sample_summary.csv"
+    CH2_CSV_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = CH2_CSV_DIR / "sample_summary.csv"
     summary.to_csv(out_path, index=False)
-    print(f"\nWritten: {out_path.relative_to(PIPELINE_ROOT)}")
+    print(f"\nWritten: {out_path.relative_to(REPO_ROOT)}")
 
 
 if __name__ == "__main__":

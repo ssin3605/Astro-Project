@@ -43,6 +43,7 @@ OPTICAL_DIR = DATA_DIR / "optical"
 # Outputs
 OUTPUTS_DIR = REPO_ROOT / "outputs"
 PIPELINE_DIR = OUTPUTS_DIR / "pipeline"
+CH2_CSV_DIR = OUTPUTS_DIR / "ch2" / "csv"
 CH3_CSV_DIR = OUTPUTS_DIR / "ch3" / "csv"
 
 # Per-metric tables (03_metrics/), merged by 04_build_master_csv.py.

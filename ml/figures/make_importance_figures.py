@@ -175,10 +175,21 @@ PAIRED_LABELS = {
 # Same feature colours as the per-algorithm figures
 PAIRED_FEATURE_COLOURS = {f: FEATURE_COLOURS[f] for f in PAIRED_FEATURES}
 
-PAIRED_ALGOS = {
-    "RF":      dict(marker="o", filled=True,  label="Random Forest", short="RF"),
-    "XGBoost": dict(marker="D", filled=False, label="XGBoost",       short="XGB"),
+# Which pair to plot: "trees" (RF vs XGBoost) or "catboost_nn" (CatBoost vs NN).
+# Can also be set from the command line: python make_importance_figures.py catboost_nn
+PAIR = "trees"
+
+PAIRS = {
+    "trees": {
+        "RF":      dict(marker="o", filled=True,  label="Random Forest",  short="RF"),
+        "XGBoost": dict(marker="D", filled=False, label="XGBoost",        short="XGB"),
+    },
+    "catboost_nn": {
+        "CatBoost": dict(marker="o", filled=True,  label="CatBoost",       short="CB"),
+        "NN":       dict(marker="D", filled=False, label="Neural Network", short="NN"),
+    },
 }
+PAIRED_ALGOS = PAIRS[PAIR]
 
 # Drawn at the printed size (A4 text width with ~2.5 cm margins is ~6.3 in),
 # so font sizes are the true sizes in the thesis
@@ -261,14 +272,15 @@ def make_paired_figure(out_dir=OUTPUT_DIR):
                    bbox_to_anchor=(0.5, 1.0), handletextpad=0.4, columnspacing=1.5)
         fig.tight_layout(rect=(0, 0, 1, 0.95), h_pad=1.0, w_pad=1.2)
 
-        stem = os.path.join(out_dir, "RF_XGBoost_importance_paired")
+        stem = os.path.join(out_dir, "_".join(PAIRED_ALGOS) + "_importance_trial")
         fig.savefig(stem + ".pdf", bbox_inches="tight")
         fig.savefig(stem + ".png", dpi=300, bbox_inches="tight")
         plt.close(fig)
     print(f"Saved {stem}.pdf / .png")
 
-
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        PAIRED_ALGOS = PAIRS[sys.argv[1]]
     for algo in ALGORITHMS:
         make_figure(algo)
     make_paired_figure()
